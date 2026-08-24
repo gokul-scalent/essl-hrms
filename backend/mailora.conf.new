@@ -1,0 +1,21 @@
+server {
+    listen 80;
+    listen [::]:80;
+    server_name mailora.scalent.io dashboard.mailora.media 185.230.138.44;
+    root /var/www/dashboard.mailora.media/html;
+    index index.html;
+
+    location /mailora-core/ {
+        proxy_pass http://127.0.0.1:8081;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_read_timeout 90s;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

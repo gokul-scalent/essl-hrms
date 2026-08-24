@@ -1,0 +1,1 @@
+export const emailList = "EMAIL_LIST";

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Scalent HRMS</title>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f6f9;
+            color: #333333;
+            line-height: 1.6;
+        }
+
+        .email-container {
+            width: 100%;
+            padding: 20px;
+        }
+
+        .wrapper {
+            max-width: 600px;
+            margin: auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+        }
+
+        .header {
+            background-color: #1a4f8b;
+            color: #ffffff;
+            text-align: center;
+            padding: 35px 20px;
+        }
+
+        .header h2 {
+            margin: 0;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .content {
+            padding: 40px 35px;
+            color: #333333;
+        }
+
+        .content p {
+            font-size: 15px;
+            line-height: 1.7;
+            margin: 14px 0;
+        }
+
+        .credentials-box {
+            background-color: #ffffff;
+            border: 1px solid #e0e7ff;
+            border-radius: 10px;
+            padding: 18px 20px;
+            margin: 25px 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .credentials-box p {
+            margin: 8px 0;
+            font-size: 15px;
+        }
+
+        .credentials-label {
+            font-weight: 600;
+            color: #1a4f8b;
+            display: inline-block;
+            width: 160px;
+        }
+
+        .login-button {
+            display: inline-block;
+            background-color: #1a4f8b;
+            color: #ffffff !important;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+
+        .footer {
+            background-color: #f8f9fa;
+            text-align: center;
+            padding: 20px 15px;
+            font-size: 13.5px;
+            color: #666666;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .footer p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="email-container">
+        <div class="wrapper">
+
+            <div class="header">
+                <h2>Welcome to Mailora</h2>
+            </div>
+
+            <div class="content">
+
+                <p>Dear {{.UserName}},</p>
+
+                <p>Welcome to <strong>Mailora</strong>, your email verification platform.</p>
+
+                <p>
+                    Your account has been successfully created by an administrator.
+                    You can now log in and start using Mailora to verify email addresses
+                    and manage your email lists.
+                </p>
+
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="{{.LoginLink}}" class="login-button">
+                        Login to Mailora
+                    </a>
+                </p>
+
+                <p>Please find your login details below:</p>
+
+                <div class="credentials-box">
+                    <p><span class="credentials-label">Login Email:</span>
+                        {{.LoginEmail}}
+                    </p>
+
+                    <p><span class="credentials-label">Temporary Password:</span>
+                        <strong>{{.LoginPassword}}</strong>
+                    </p>
+                </div>
+
+                <p>For security reasons, please log in and change your password immediately.</p>
+
+                <p>If you need any assistance, please contact the<strong>Mailora Support Team</strong>.</p>
+                <p><strong>— Mailora Team</strong></p>
+            </div>
+
+            <div class="footer">
+                <p>© 2026 Mailora. All rights reserved.</p>
+            </div>
+
+        </div>
+    </div>
+</body>
+
+</html>

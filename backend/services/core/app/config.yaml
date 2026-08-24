@@ -1,0 +1,35 @@
+server:
+  port: :8081
+  readTimeout: 2s
+  writeTimeout: 2s
+  idleTimeout: 2s
+db:
+  driver: "mysql"
+  host: "localhost"
+  user: "root"
+  pass: "password"
+  name: "scalent_hrms"
+cache:
+  host: "localhost" # Correct container name
+  port: 6379 # Use the correct exposed port
+  user: "default"
+  pass: ""
+  DB: 0 
+
+reacher:
+  baseURL: "http://localhost:8080"
+  timeout: 1s
+
+service:
+  isEmailSendingEnabled : "ACTIVE"
+  smtpHost: "smtp.gmail.com"
+  smtpPort: "587"
+  smtpEmail: "namitaScalentOffice@gmail.com"           #need to replace with another mail account
+  smtpEncryptionType: "TLS/SSL"                        
+  smtpPassword: "bktc ivom upjr afwg"
+  smtpUsername: "namitaScalentOffice@gmail.com"         #need to replace with another mail account
+  senderEmail: "namitaScalentOffice@gmail.com"          #need to replace with another mail account
+  senderName: "Scalent HRMS"
+  templatePath: "../../../pkg/email/template/%s.html" 
+  welcomeUserTemplateConstant: "WELCOME_EMAIL"
+  welcomeUserEmailSubject: "Welcome to the Scalent HRMS"
