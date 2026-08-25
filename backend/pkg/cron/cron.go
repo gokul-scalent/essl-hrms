@@ -1,8 +1,6 @@
 package cron
 
 import (
-	"context"
-	"fmt"
 	"math/rand"
 	"time"
 
@@ -17,45 +15,11 @@ import (
 func StartCronJobs() error {
 	log.Info("********************************Starting cron jobs", "")
 
-	if leadService == nil {
-		err := fmt.Errorf("LeadService not initialized")
-		log.Error(err.Error(), "")
-		return err
-	}
-
 	rand.Seed(time.Now().UnixNano())
 	go func() {
 		for {
 			log.Info("------------------Running leads verification cron----------------", "")
-			log.Info("Checking for pending email verification", "")
 
-			hasPending, errResp := leadService.HasPendingVerification(context.Background())
-			if errResp != nil {
-				log.Error(errResp.Error(), "")
-				time.Sleep(15 * time.Second)
-				continue
-			}
-
-			if !hasPending {
-				log.Info("No pending emails to verify", "")
-				time.Sleep(15 * time.Second)
-				continue
-			}
-
-			log.Info("Running lead verification cron", "")
-			// Verify one lead and get user's configured interval
-			verificationInterval, errResp := VerifyPendingLeads()
-			log.Info(fmt.Sprintf("Verification interval from user or db : %v", verificationInterval), "")
-			if errResp != nil {
-				log.Error(errResp.Error(), "")
-				continue
-			}
-
-			// Add random delay based on user's configured interval
-			delay := randomCronInterval(verificationInterval)
-
-			log.Info(fmt.Sprintf("Next lead verification cron will run after: %v", delay), "")
-			time.Sleep(delay)
 		}
 	}()
 
