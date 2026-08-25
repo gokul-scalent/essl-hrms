@@ -12,14 +12,11 @@ import (
 )
 
 type CoreHandlerRegistryOptions struct {
-	Config             *server.Config
-	Middleware         middleware.Middleware
-	HomeService        coreService.HomeService
-	UserService        coreService.UserService
-	EmailListService   coreService.EmailListService
-	LeadService        coreService.LeadService
-	LoginService       coreService.LoginService
-	UserSettingService coreService.UserSettingService
+	Config       *server.Config
+	Middleware   middleware.Middleware
+	HomeService  coreService.HomeService
+	UserService  coreService.UserService
+	LoginService coreService.LoginService
 }
 
 type CoreHandlerRegistry struct {
@@ -73,43 +70,6 @@ func (h CoreHandlerRegistry) registerRoutes() (*gin.Engine, error) {
 	//---UserService  coreService.UserService
 	//---delete these lines after copy
 
-	emailListRouter := coreRouter.Group("/email-list")
-	emailListRouter.POST("/", h.CreateEmailListHandler)
-	emailListRouter.PATCH("/:id", h.PartialUpdateEmailListHandler)
-	emailListRouter.PUT("/:id", h.UpdateEmailListHandler)
-	emailListRouter.DELETE("/:id", h.DeleteEmailListHandler)
-	emailListRouter.GET("/:id", h.GetEmailListbyIDHandler)
-	emailListRouter.GET("/list", h.ListEmailListHandler)
-
-	//---add the following line above in CoreHandlerRegistryOptions struct
-	//---EmailListService  coreService.EmailListService
-	//---delete these lines after copy
-
-	leadRouter := coreRouter.Group("/lead")
-	leadRouter.POST("/", h.CreateLeadHandler)
-	leadRouter.PATCH("/:id", h.PartialUpdateLeadHandler)
-	leadRouter.PUT("/:id", h.UpdateLeadHandler)
-	leadRouter.DELETE("/:id", h.DeleteLeadHandler)
-	leadRouter.GET("/list", h.ListLeadHandler)
-	leadRouter.GET("/download", h.DownloadLeadsCSVHandler)
-	leadRouter.GET("/:id", h.GetLeadbyIDHandler)
-	leadRouter.PUT("/reverify/:id", h.ReverifyLeadHandler)
-
-	//---add the following line above in CoreHandlerRegistryOptions struct
-	//---LeadService  coreService.LeadService
-	//---delete these lines after copy
-
-	userSettingRouter := coreRouter.Group("/user-setting")
-	userSettingRouter.POST("/", h.CreateUserSettingHandler)
-	userSettingRouter.PATCH("/:id", h.PartialUpdateUserSettingHandler)
-	userSettingRouter.PUT("/:id", h.UpdateUserSettingHandler)
-	userSettingRouter.DELETE("/:id", h.DeleteUserSettingHandler)
-	userSettingRouter.GET("/:id", h.GetUserSettingbyIDHandler)
-	userSettingRouter.GET("/list", h.ListUserSettingHandler)
-
-	//---add the following line above in CoreHandlerRegistryOptions struct
-	//---UserSettingService  coreService.UserSettingService
-	//---delete these lines after copy
 	//-----==-----==DO NOT ADD CODE BELOW THIS LINE------
 	return router, nil
 }

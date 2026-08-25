@@ -41,9 +41,6 @@ Coded by www.creative-tim.com
 import Icon from "@mui/material/Icon";
 import Dashboard from "pages/dashboard";
 import SignIn from "pages/authentication/sign-in";
-import EmailListing from "pages/emailList/EmailListing";
-import LeadListing from "pages/leads/LeadListing";
-import VerificationSettingsModal from "pages/Setting/VerificationSettingsModal";
 import UsersListing from "pages/Users/UsersListing";
 
 const routes = [
@@ -68,39 +65,6 @@ const routes = [
     show: false,
     roles: [],
     layout: "/auth",
-  },
-  {
-    type: "collapse",
-    show: true,
-    name: "Email Lists",
-    key: "emailLists",
-    route: "/email-lists",
-    icon: <Icon fontSize="small">email</Icon>,
-    component: <EmailListing />,
-    layout: "/admin",
-    roles: ["ADMIN"],
-  },
-  {
-    type: "collapse",
-    show: false,
-    name: "Lead Lists",
-    key: "leadLists",
-    route: "/lead-list/:id",
-    icon: <Icon fontSize="small">list_alt</Icon>,
-    component: <LeadListing />,
-    layout: "/admin",
-    roles: ["ADMIN"],
-  },
-  {
-    type: "collapse",
-    show: true,
-    name: "Setting",
-    key: "setting",
-    route: "/setting",
-    icon: <Icon fontSize="small">settings</Icon>,
-    component: <VerificationSettingsModal />,
-    layout: "/admin",
-    roles: ["ADMIN"],
   },
   {
     type: "collapse",

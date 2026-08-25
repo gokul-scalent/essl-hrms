@@ -55,31 +55,11 @@ func initServer(config2 *CoreConfig) (*web.CoreHandlerRegistry, error) {
 	if err != nil {
 		return nil, err
 	}
-	emailListRepoImpl, err := repo.NewEmailListRepoImpl(db)
-	if err != nil {
-		return nil, err
-	}
-	emailListServiceImpl, err := service.NewEmailListServiceImpl(emailListRepoImpl)
-	if err != nil {
-		return nil, err
-	}
-	leadRepoImpl, err := repo.NewLeadRepoImpl(db)
-	if err != nil {
-		return nil, err
-	}
-	reacherConfig := config2.Reacher
-	reacherClient, err := reacher.NewReacherClient(reacherConfig)
-	if err != nil {
-		return nil, err
-	}
-	userSettingRepoImpl, err := repo.NewUserSettingRepoImpl(db)
-	if err != nil {
-		return nil, err
-	}
-	leadServiceImpl, err := service.NewLeadServiceImpl(leadRepoImpl, emailListRepoImpl, reacherClient, userSettingRepoImpl)
-	if err != nil {
-		return nil, err
-	}
+	// reacherConfig := config2.Reacher
+	// reacherClient, err := reacher.NewReacherClient(reacherConfig)
+	// if err != nil {
+	// 	return nil, err
+	// }
 	loginRepoImpl, err := repo.NewLoginRepoImpl(db)
 	if err != nil {
 		return nil, err
@@ -88,19 +68,13 @@ func initServer(config2 *CoreConfig) (*web.CoreHandlerRegistry, error) {
 	if err != nil {
 		return nil, err
 	}
-	userSettingServiceImpl, err := service.NewUserSettingServiceImpl(userSettingRepoImpl)
-	if err != nil {
-		return nil, err
-	}
+
 	coreHandlerRegistryOptions := web.CoreHandlerRegistryOptions{
-		Config:             serverConfig,
-		Middleware:         middlewareImpl,
-		HomeService:        homeServiceImpl,
-		UserService:        userServiceImpl,
-		EmailListService:   emailListServiceImpl,
-		LeadService:        leadServiceImpl,
-		LoginService:       loginServiceImpl,
-		UserSettingService: userSettingServiceImpl,
+		Config:       serverConfig,
+		Middleware:   middlewareImpl,
+		HomeService:  homeServiceImpl,
+		UserService:  userServiceImpl,
+		LoginService: loginServiceImpl,
 	}
 	coreHandlerRegistry := web.NewCoreHandlerRegistry(coreHandlerRegistryOptions)
 	return coreHandlerRegistry, nil
@@ -108,4 +82,4 @@ func initServer(config2 *CoreConfig) (*web.CoreHandlerRegistry, error) {
 
 // wire.go:
 
-var CoreModuleSet = wire.NewSet(wire.FieldsOf(new(*CoreConfig), "server", "db", "Reacher"), NewCacheConfig, cache.NewRedisInstance, casbin.InitCasbin, sqlx.NewDBConn, NewServiceConfig, reacher.NewReacherClient, wire.Struct(new(web.CoreHandlerRegistryOptions), "*"), web.NewCoreHandlerRegistry, auth.NewAuthImpl, middleware.NewMiddlewareImpl, wire.Bind(new(middleware.Middleware), new(*middleware.MiddlewareImpl)), repo.NewHomeRepoImpl, wire.Bind(new(service.HomeRepo), new(*repo.HomeRepoImpl)), service.NewHomeServiceImpl, wire.Bind(new(service.HomeService), new(*service.HomeServiceImpl)), repo.NewUserRepoImpl, wire.Bind(new(service.UserRepo), new(*repo.UserRepoImpl)), service.NewUserServiceImpl, wire.Bind(new(service.UserService), new(*service.UserServiceImpl)), repo.NewEmailListRepoImpl, wire.Bind(new(service.EmailListRepo), new(*repo.EmailListRepoImpl)), service.NewEmailListServiceImpl, wire.Bind(new(service.EmailListService), new(*service.EmailListServiceImpl)), repo.NewLeadRepoImpl, wire.Bind(new(service.LeadRepo), new(*repo.LeadRepoImpl)), service.NewLeadServiceImpl, wire.Bind(new(service.LeadService), new(*service.LeadServiceImpl)), repo.NewLoginRepoImpl, wire.Bind(new(service.LoginRepo), new(*repo.LoginRepoImpl)), service.NewLoginServiceImpl, wire.Bind(new(service.LoginService), new(*service.LoginServiceImpl)), repo.NewUserSettingRepoImpl, wire.Bind(new(service.UserSettingRepo), new(*repo.UserSettingRepoImpl)), service.NewUserSettingServiceImpl, wire.Bind(new(service.UserSettingService), new(*service.UserSettingServiceImpl)))
+var CoreModuleSet = wire.NewSet(wire.FieldsOf(new(*CoreConfig), "server", "db", "Reacher"), NewCacheConfig, cache.NewRedisInstance, casbin.InitCasbin, sqlx.NewDBConn, NewServiceConfig, reacher.NewReacherClient, wire.Struct(new(web.CoreHandlerRegistryOptions), "*"), web.NewCoreHandlerRegistry, auth.NewAuthImpl, middleware.NewMiddlewareImpl, wire.Bind(new(middleware.Middleware), new(*middleware.MiddlewareImpl)), repo.NewHomeRepoImpl, wire.Bind(new(service.HomeRepo), new(*repo.HomeRepoImpl)), service.NewHomeServiceImpl, wire.Bind(new(service.HomeService), new(*service.HomeServiceImpl)), repo.NewUserRepoImpl, wire.Bind(new(service.UserRepo), new(*repo.UserRepoImpl)), service.NewUserServiceImpl, wire.Bind(new(service.UserService), new(*service.UserServiceImpl)), repo.NewLoginRepoImpl, wire.Bind(new(service.LoginRepo), new(*repo.LoginRepoImpl)), service.NewLoginServiceImpl, wire.Bind(new(service.LoginService), new(*service.LoginServiceImpl)))
