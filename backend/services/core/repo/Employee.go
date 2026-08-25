@@ -61,10 +61,7 @@ func (r *EmployeeRepoImpl) CreateEmployee(ctx context.Context, employee entity.E
 		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
 	}
 
-	log.Info(
-		"core>repo>employee: CreateEmployee completed & employee id is "+strconv.Itoa(int(employeeID)),
-		reqID,
-	)
+	log.Info("core>repo>employee: CreateEmployee completed & employee id is "+strconv.Itoa(int(employeeID)),reqID,)
 	return int(employeeID), nil
 }
 
@@ -264,7 +261,6 @@ func (r *EmployeeRepoImpl) ListEmployee(ctx context.Context, filter *filters.Lis
 	}
 
 	log.Info("core>repo>employee: ListEmployee completed", reqID)
-
 	return count, employeeEntities, nil
 }
 

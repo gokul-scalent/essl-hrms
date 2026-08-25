@@ -36,7 +36,7 @@ func (s *EmployeeServiceImpl) CreateEmployee(ctx context.Context, employee entit
 
 func (s *EmployeeServiceImpl) PartialUpdateEmployee(ctx context.Context, employee entity.Employee) errors.Response {
 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
-	log.Info("core>service>employee: partila update employee started for employee id "+strconv.Itoa(employee.ID), reqID)
+	log.Info("core>service>employee: partial update employee started for employee id "+strconv.Itoa(employee.ID), reqID)
 
 	errResp := s.employeeRepo.PartialUpdateEmployee(ctx, employee)
 	if errResp != nil {
