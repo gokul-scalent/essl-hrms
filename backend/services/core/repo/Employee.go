@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/scalent.io/scalent-hrms/entity"
 	commonConstants "github.com/scalent.io/scalent-hrms/entity/commonConstants"
@@ -34,9 +35,23 @@ func (r *EmployeeRepoImpl) CreateEmployee(ctx context.Context, employee entity.E
 
 	query := "INSERT INTO employees (uid, emp_id, emp_name, privilege, password, group_id, card) VALUES(?, ?, ?, ?, ?, ?, ?)"
 
-	result, err := r.db.Exec(query, employee.UID, employee.EmpID, employee.EmpName, employee.Privilege, employee.Password, employee.GroupID, employee.Card)
+	result, err := r.db.Exec(
+		query,
+		employee.UID,
+		employee.EmpID,
+		employee.EmpName,
+		employee.Privilege,
+		employee.Password,
+		employee.GroupID,
+		employee.Card,
+	)
+
 	if err != nil {
 		log.Error(err.Error(), reqID)
+		if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
+			return 0, errors.ResponseBadRequestError("Employee ID already exists")
+		}
+
 		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
 	}
 
@@ -46,7 +61,10 @@ func (r *EmployeeRepoImpl) CreateEmployee(ctx context.Context, employee entity.E
 		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
 	}
 
-	log.Info("core>repo>employee: CreateEmployee completed & employee id is "+strconv.Itoa(int(employeeID)), reqID)
+	log.Info(
+		"core>repo>employee: CreateEmployee completed & employee id is "+strconv.Itoa(int(employeeID)),
+		reqID,
+	)
 	return int(employeeID), nil
 }
 
@@ -102,6 +120,11 @@ func (r *EmployeeRepoImpl) PartialUpdateEmployee(ctx context.Context, employee e
 		_, err := r.db.Exec(query, args...)
 		if err != nil {
 			log.Error(err.Error(), reqID)
+
+			if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
+				return errors.ResponseBadRequestError("Employee already exists")
+			}
+
 			return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
 		}
 	}
