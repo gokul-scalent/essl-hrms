@@ -173,25 +173,34 @@ func (r *EmployeeRepoImpl) ListEmployee(ctx context.Context, filter *filters.Lis
 
 	whereStr, args := filterPkg.CreateFilterStr(filter.Filters, modelmap)
 
-	nullString := " AND employees.deleted_at IS NULL "
+	// Search employee by ID or name
+	if filter.SearchString != "" {
+		search := "%" + strings.TrimSpace(filter.SearchString) + "%"
 
-	if len(whereStr) == 0 {
-		nullString = "  employees.deleted_at IS NULL "
+		whereStr = append(
+			whereStr,
+			"(employees.emp_id LIKE ? OR employees.emp_name LIKE ?)",
+		)
+		args = append(args, search, search)
 	}
+
+	// Soft delete
+	whereStr = append(whereStr, "employees.deleted_at IS NULL")
 
 	whereString := strings.Join(whereStr, " AND ")
 	whereString = "WHERE " + whereString
 
-	queryStatement = queryStatement + whereString + nullString
+	queryStatement += whereString
 
 	sortStr := filterPkg.CreateSortStr(filter.SortOption, modelmap)
-	queryStatement = queryStatement + sortStr
+	queryStatement += sortStr
 
 	var limitQueryStmt string
 
 	emptySortOption := filters.SortOption{}
 
-	totalRecordQueryStatement := "SELECT COUNT(id) as totalRecords FROM (" + queryStatement + ") as result  "
+	totalRecordQueryStatement := "SELECT COUNT(id) as totalRecords FROM (" + queryStatement + ") as result"
+
 	var count int
 	err := r.db.Get(&count, totalRecordQueryStatement, args...)
 	if err != nil {
@@ -199,15 +208,19 @@ func (r *EmployeeRepoImpl) ListEmployee(ctx context.Context, filter *filters.Lis
 		return 0, nil, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
 	}
 
-	if filter.Page == 0 && len(filter.Filters) == 0 && filter.SortOption == emptySortOption {
+	if filter.Page == 0 && len(filter.Filters) == 0 &&
+		filter.SortOption == emptySortOption &&
+		filter.SearchString == "" {
+
 		limitQueryStmt = queryStatement
 
-	} else if filter.Page == 0 || filter.Page != 0 || len(filter.Filters) > 0 || filter.SortOption != emptySortOption {
+	} else {
 		if filter.Page == 0 {
 			filter.Page = 1
 		}
 
 		offset := commonConstants.NO_OF_RECORDS_PER_PAGE * (filter.Page - 1)
+
 		limitQueryStmt = queryStatement + " LIMIT ?,?"
 		args = append(args, offset, commonConstants.NO_OF_RECORDS_PER_PAGE)
 	}
@@ -228,6 +241,7 @@ func (r *EmployeeRepoImpl) ListEmployee(ctx context.Context, filter *filters.Lis
 	}
 
 	log.Info("core>repo>employee: ListEmployee completed", reqID)
+
 	return count, employeeEntities, nil
 }
 

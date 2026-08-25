@@ -185,6 +185,7 @@ func (h CoreHandlerRegistry) ListEmployeeHandler(c *gin.Context) {
 
 	paramPageValue := queryParams.Get("page")
 	pageNo, _ := strconv.Atoi(paramPageValue)
+	paramSearchString := queryParams.Get("searchString") //added search string params
 
 	paramFilterVAlue := queryParams.Get("filtersJSON")
 	var filtersArray []apimodel.Filter
@@ -197,6 +198,7 @@ func (h CoreHandlerRegistry) ListEmployeeHandler(c *gin.Context) {
 	listFiltersRequest.Page = pageNo
 	listFiltersRequest.Filters = filtersArray
 	listFiltersRequest.SortOption = sortOption
+	listFiltersRequest.SearchString = paramSearchString //added search string params
 
 	filterEntity := converter.FilterAPIRequestToFilterEntity(listFiltersRequest)
 
