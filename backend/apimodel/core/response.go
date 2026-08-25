@@ -29,5 +29,21 @@ type RoleResponse struct {
 	Code   string `json:"code"`
 	Status string `json:"status"`
 }
+type EmployeeResponse struct {
+	ID        int    `json:"ID"`
+	UID       int    `json:"uID"`
+	EmpID     string `json:"empID"`
+	EmpName   string `json:"empName"`
+	Privilege int    `json:"privilege"`
+	// Password  string `json:"password"`
+	GroupID string `json:"groupID"`
+	Card    string `json:"card"`
+}
+
+type EmployeeListResponse struct {
+	TotalRecords       int `json:"totalRecords"`
+	NoOfRecordsPerPage int `json:"noOfRecordsPerPage"`
+	Employee           []EmployeeResponse
+}
 
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------

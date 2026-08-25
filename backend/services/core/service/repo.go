@@ -31,4 +31,14 @@ type UserRepo interface {
 	ChangePassword(ctx context.Context, password string, userID int) errors.Response
 }
 
+type EmployeeRepo interface {
+	CreateEmployee(ctx context.Context, employee entity.Employee) (int, errors.Response)
+	PartialUpdateEmployee(ctx context.Context, employee entity.Employee) errors.Response
+	UpdateEmployee(ctx context.Context, employee entity.Employee) errors.Response
+	DeleteEmployee(ctx context.Context, employeeID int) errors.Response
+	GetEmployeebyID(ctx context.Context, employeeID int) (entity.Employee, errors.Response)
+	ListEmployee(ctx context.Context, filter *filters.ListFilter) (int, []entity.Employee, errors.Response)
+	GetEmployeeDetails(ctx context.Context, selectColumns []string, table string, whereColumn []string, args []interface{}) (*entity.Employee, errors.Response)
+}
+
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------

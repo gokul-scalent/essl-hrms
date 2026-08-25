@@ -24,4 +24,19 @@ func UserEntityToUserAPIModelResponse(e entity.User) coreAPIModel.UserResponse {
 	return list
 }
 
+func EmployeeEntityToUserAPIModelResponse(e entity.Employee) coreAPIModel.EmployeeResponse {
+	list := coreAPIModel.EmployeeResponse{
+
+		ID:        e.ID,
+		UID:       e.UID,
+		EmpID:     e.EmpID,
+		EmpName:   e.EmpName,
+		Privilege: e.Privilege,
+		// Password:  e.Password,
+		GroupID: e.GroupID,
+		Card:    e.Card,
+	}
+	return list
+}
+
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------

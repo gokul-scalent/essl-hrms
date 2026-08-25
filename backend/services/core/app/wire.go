@@ -52,6 +52,12 @@ var CoreModuleSet = wire.NewSet(
 	service.NewLoginServiceImpl,
 	wire.Bind(new(service.LoginService), new(*service.LoginServiceImpl)),
 
+	repo.NewEmployeeRepoImpl,
+	wire.Bind(new(service.EmployeeRepo), new(*repo.EmployeeRepoImpl)),
+
+	service.NewEmployeeServiceImpl,
+	wire.Bind(new(service.EmployeeService), new(*service.EmployeeServiceImpl)),
+
 // -----==-----==DO NOT ADD CODE BELOW THIS LINE------
 )
 

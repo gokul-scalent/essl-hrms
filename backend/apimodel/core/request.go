@@ -34,4 +34,24 @@ type ChangePasswordRequest struct {
 	ConfirmPassword string `json:"confirmPassword" binding:"required,min=8"`
 }
 
+type Employee struct {
+	UID       int    `json:"uID" binding:"required"`
+	EmpID     string `json:"empID" binding:"required"`
+	EmpName   string `json:"empName" binding:"required"`
+	Privilege int    `json:"privilege" binding:"omitempty"`
+	Password  string `json:"password" binding:"omitempty"`
+	GroupID   string `json:"groupID" binding:"omitempty"`
+	Card      string `json:"card" binding:"omitempty"`
+}
+
+type UpdateEmployeeRequest struct {
+	UID       int    `json:"uID" binding:"omitempty"`
+	EmpID     string `json:"empID" binding:"omitempty"`
+	EmpName   string `json:"empName" binding:"omitempty"`
+	Privilege int    `json:"privilege" binding:"omitempty"`
+	Password  string `json:"password" binding:"omitempty"`
+	GroupID   string `json:"groupID" binding:"omitempty"`
+	Card      string `json:"card" binding:"omitempty"`
+}
+
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------

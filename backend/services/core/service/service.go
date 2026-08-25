@@ -27,4 +27,13 @@ type UserService interface {
 	ChangePassword(ctx context.Context, oldPassword string, newPassword string) errors.Response
 }
 
+type EmployeeService interface {
+	CreateEmployee(ctx context.Context, employee entity.Employee) (int, errors.Response)
+	PartialUpdateEmployee(ctx context.Context, employee entity.Employee) errors.Response
+	UpdateEmployee(ctx context.Context, employee entity.Employee) errors.Response
+	DeleteEmployee(ctx context.Context, employeeID int) errors.Response
+	GetEmployeebyID(ctx context.Context, employeeID int) (entity.Employee, errors.Response)
+	ListEmployee(ctx context.Context, filter *filters.ListFilter) (int, []entity.Employee, errors.Response)
+}
+
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------
