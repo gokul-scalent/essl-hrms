@@ -85,4 +85,34 @@ func UpdateUserAPIRequestToUserEntity(request *coreAPIModel.UpdateUserRequest) e
 	return e
 }
 
+func CreateEmployeeAPIRequestToEmployeeEntity(request *coreAPIModel.Employee) entity.Employee {
+	e := entity.Employee{
+
+		UID:       request.UID,
+		EmpID:     request.EmpID,
+		EmpName:   request.EmpName,
+		Privilege: request.Privilege,
+		Password:  request.Password,
+		GroupID:   request.GroupID,
+		Card:      request.Card,
+	}
+
+	return e
+}
+
+func UpdateEmployeeAPIRequestToEmployeeEntity(request *coreAPIModel.UpdateEmployeeRequest) entity.Employee {
+	e := entity.Employee{
+
+		UID:       request.UID,
+		EmpID:     request.EmpID,
+		EmpName:   request.EmpName,
+		Privilege: request.Privilege,
+		Password:  request.Password,
+		GroupID:   request.GroupID,
+		Card:      request.Card,
+	}
+
+	return e
+}
+
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------

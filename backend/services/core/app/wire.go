@@ -45,18 +45,6 @@ var CoreModuleSet = wire.NewSet(
 	service.NewUserServiceImpl,
 	wire.Bind(new(service.UserService), new(*service.UserServiceImpl)),
 
-	repo.NewEmailListRepoImpl,
-	wire.Bind(new(service.EmailListRepo), new(*repo.EmailListRepoImpl)),
-
-	service.NewEmailListServiceImpl,
-	wire.Bind(new(service.EmailListService), new(*service.EmailListServiceImpl)),
-
-	repo.NewLeadRepoImpl,
-	wire.Bind(new(service.LeadRepo), new(*repo.LeadRepoImpl)),
-
-	service.NewLeadServiceImpl,
-	wire.Bind(new(service.LeadService), new(*service.LeadServiceImpl)),
-
 	//login module
 	repo.NewLoginRepoImpl,
 	wire.Bind(new(service.LoginRepo), new(*repo.LoginRepoImpl)),
@@ -64,11 +52,11 @@ var CoreModuleSet = wire.NewSet(
 	service.NewLoginServiceImpl,
 	wire.Bind(new(service.LoginService), new(*service.LoginServiceImpl)),
 
-	repo.NewUserSettingRepoImpl,
-	wire.Bind(new(service.UserSettingRepo), new(*repo.UserSettingRepoImpl)),
+	repo.NewEmployeeRepoImpl,
+	wire.Bind(new(service.EmployeeRepo), new(*repo.EmployeeRepoImpl)),
 
-	service.NewUserSettingServiceImpl,
-	wire.Bind(new(service.UserSettingService), new(*service.UserSettingServiceImpl)),
+	service.NewEmployeeServiceImpl,
+	wire.Bind(new(service.EmployeeService), new(*service.EmployeeServiceImpl)),
 
 // -----==-----==DO NOT ADD CODE BELOW THIS LINE------
 )

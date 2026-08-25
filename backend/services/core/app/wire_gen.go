@@ -55,11 +55,6 @@ func initServer(config2 *CoreConfig) (*web.CoreHandlerRegistry, error) {
 	if err != nil {
 		return nil, err
 	}
-	// reacherConfig := config2.Reacher
-	// reacherClient, err := reacher.NewReacherClient(reacherConfig)
-	// if err != nil {
-	// 	return nil, err
-	// }
 	loginRepoImpl, err := repo.NewLoginRepoImpl(db)
 	if err != nil {
 		return nil, err
@@ -68,13 +63,21 @@ func initServer(config2 *CoreConfig) (*web.CoreHandlerRegistry, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	employeeRepoImpl, err := repo.NewEmployeeRepoImpl(db)
+	if err != nil {
+		return nil, err
+	}
+	employeeServiceImpl, err := service.NewEmployeeServiceImpl(employeeRepoImpl)
+	if err != nil {
+		return nil, err
+	}
 	coreHandlerRegistryOptions := web.CoreHandlerRegistryOptions{
-		Config:       serverConfig,
-		Middleware:   middlewareImpl,
-		HomeService:  homeServiceImpl,
-		UserService:  userServiceImpl,
-		LoginService: loginServiceImpl,
+		Config:          serverConfig,
+		Middleware:      middlewareImpl,
+		HomeService:     homeServiceImpl,
+		UserService:     userServiceImpl,
+		LoginService:    loginServiceImpl,
+		EmployeeService: employeeServiceImpl,
 	}
 	coreHandlerRegistry := web.NewCoreHandlerRegistry(coreHandlerRegistryOptions)
 	return coreHandlerRegistry, nil
@@ -82,4 +85,4 @@ func initServer(config2 *CoreConfig) (*web.CoreHandlerRegistry, error) {
 
 // wire.go:
 
-var CoreModuleSet = wire.NewSet(wire.FieldsOf(new(*CoreConfig), "server", "db", "Reacher"), NewCacheConfig, cache.NewRedisInstance, casbin.InitCasbin, sqlx.NewDBConn, NewServiceConfig, reacher.NewReacherClient, wire.Struct(new(web.CoreHandlerRegistryOptions), "*"), web.NewCoreHandlerRegistry, auth.NewAuthImpl, middleware.NewMiddlewareImpl, wire.Bind(new(middleware.Middleware), new(*middleware.MiddlewareImpl)), repo.NewHomeRepoImpl, wire.Bind(new(service.HomeRepo), new(*repo.HomeRepoImpl)), service.NewHomeServiceImpl, wire.Bind(new(service.HomeService), new(*service.HomeServiceImpl)), repo.NewUserRepoImpl, wire.Bind(new(service.UserRepo), new(*repo.UserRepoImpl)), service.NewUserServiceImpl, wire.Bind(new(service.UserService), new(*service.UserServiceImpl)), repo.NewLoginRepoImpl, wire.Bind(new(service.LoginRepo), new(*repo.LoginRepoImpl)), service.NewLoginServiceImpl, wire.Bind(new(service.LoginService), new(*service.LoginServiceImpl)))
+var CoreModuleSet = wire.NewSet(wire.FieldsOf(new(*CoreConfig), "server", "db", "Reacher"), NewCacheConfig, cache.NewRedisInstance, casbin.InitCasbin, sqlx.NewDBConn, NewServiceConfig, reacher.NewReacherClient, wire.Struct(new(web.CoreHandlerRegistryOptions), "*"), web.NewCoreHandlerRegistry, auth.NewAuthImpl, middleware.NewMiddlewareImpl, wire.Bind(new(middleware.Middleware), new(*middleware.MiddlewareImpl)), repo.NewHomeRepoImpl, wire.Bind(new(service.HomeRepo), new(*repo.HomeRepoImpl)), service.NewHomeServiceImpl, wire.Bind(new(service.HomeService), new(*service.HomeServiceImpl)), repo.NewUserRepoImpl, wire.Bind(new(service.UserRepo), new(*repo.UserRepoImpl)), service.NewUserServiceImpl, wire.Bind(new(service.UserService), new(*service.UserServiceImpl)), repo.NewLoginRepoImpl, wire.Bind(new(service.LoginRepo), new(*repo.LoginRepoImpl)), service.NewLoginServiceImpl, wire.Bind(new(service.LoginService), new(*service.LoginServiceImpl)), repo.NewEmployeeRepoImpl, wire.Bind(new(service.EmployeeRepo), new(*repo.EmployeeRepoImpl)), service.NewEmployeeServiceImpl, wire.Bind(new(service.EmployeeService), new(*service.EmployeeServiceImpl)))

@@ -22,4 +22,21 @@ func UserModelToUserEntity(m model.User) entity.User {
 	return e
 }
 
+func EmployeeModelToEmployeeEntity(m model.Employee) entity.Employee {
+	e := entity.Employee{
+
+		ID:        m.ID,
+		UID:       m.UID,
+		EmpID:     m.EmpID,
+		EmpName:   m.EmpName,
+		Privilege: int(m.Privilege.Int64),
+		Password:  m.Password.String,
+		GroupID:   m.GroupID.String,
+		Card:      m.Card.String,
+		CreatedAt: m.CreatedAt.Time,
+		DeletedAt: m.DeletedAt.Time,
+	}
+	return e
+}
+
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------
