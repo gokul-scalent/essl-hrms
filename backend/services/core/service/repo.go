@@ -41,4 +41,13 @@ type EmployeeRepo interface {
 	GetEmployeeDetails(ctx context.Context, selectColumns []string, table string, whereColumn []string, args []interface{}) (*entity.Employee, errors.Response)
 }
 
+type AttendanceLogRepo interface {
+	CreateAttendanceLog(ctx context.Context, attendanceLog entity.AttendanceLog) (int, errors.Response)
+	PartialUpdateAttendanceLog(ctx context.Context, attendanceLog entity.AttendanceLog) errors.Response
+	UpdateAttendanceLog(ctx context.Context, attendanceLog entity.AttendanceLog) errors.Response
+	GetAttendanceLogbyID(ctx context.Context, attendanceLogID int) (entity.AttendanceLog, errors.Response)
+	ListAttendanceLog(ctx context.Context, filter *filters.ListFilter) (int, []entity.AttendanceLog, errors.Response)
+	GetAttendanceLogDetails(ctx context.Context, selectColumns []string, table string, whereColumn []string, args []interface{}) (*entity.AttendanceLog, errors.Response)
+}
+
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------

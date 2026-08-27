@@ -54,4 +54,24 @@ type UpdateEmployeeRequest struct {
 	Card      string `json:"card" binding:"omitempty"`
 }
 
+type AttendanceLog struct {
+	UID             int       `json:"uID" binding:"required"`
+	EmpID           string    `json:"empID" binding:"required"`
+	Timestamp       time.Time `json:"timestamp" binding:"required"`
+	Status          int       `json:"status" binding:"required"`
+	Punch           int       `json:"punch"` // 0- check in and 1 -check out
+	AttendanceState string    `json:"attendanceState" binding:"required"`
+	DeviceName      string    `json:"deviceName" binding:"required"`
+}
+
+type UpdateAttendanceLogRequest struct {
+	UID             int       `json:"uID" binding:"omitempty"`
+	EmpID           string    `json:"empID" binding:"omitempty"`
+	Timestamp       time.Time `json:"timestamp" binding:"omitempty"`
+	Status          int       `json:"status" binding:"omitempty"`
+	Punch           int       `json:"punch" binding:"omitempty"`
+	AttendanceState string    `json:"attendanceState" binding:"omitempty"`
+	DeviceName      string    `json:"deviceName" binding:"omitempty"`
+}
+
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------

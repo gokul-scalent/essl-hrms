@@ -115,4 +115,34 @@ func UpdateEmployeeAPIRequestToEmployeeEntity(request *coreAPIModel.UpdateEmploy
 	return e
 }
 
+func CreateAttendanceLogAPIToAttendanceLogEntity(request *coreAPIModel.AttendanceLog) entity.AttendanceLog {
+	e := entity.AttendanceLog{
+
+		UID:             request.UID,
+		EmpID:           request.EmpID,
+		Timestamp:       request.Timestamp,
+		Status:          request.Status,
+		Punch:           request.Punch,
+		AttendanceState: request.AttendanceState,
+		DeviceName:      request.DeviceName,
+	}
+
+	return e
+}
+
+func UpdateAttendanceLogAPIRequestToAttendanceLogEntity(request *coreAPIModel.UpdateAttendanceLogRequest) entity.AttendanceLog {
+	e := entity.AttendanceLog{
+
+		UID:             request.UID,
+		EmpID:           request.EmpID,
+		Timestamp:       request.Timestamp,
+		Status:          request.Status,
+		Punch:           request.Punch,
+		AttendanceState: request.AttendanceState,
+		DeviceName:      request.DeviceName,
+	}
+
+	return e
+}
+
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------

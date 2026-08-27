@@ -39,4 +39,19 @@ func EmployeeEntityToUserAPIModelResponse(e entity.Employee) coreAPIModel.Employ
 	return list
 }
 
+func AttendanceLogEntityToAttendanceLogAPIModelResponse(e entity.AttendanceLog) coreAPIModel.AttendanceLogResponse {
+	list := coreAPIModel.AttendanceLogResponse{
+
+		ID:              e.ID,
+		UID:             e.UID,
+		EmpID:           e.EmpID,
+		Timestamp:       e.Timestamp,
+		Status:          e.Status,
+		Punch:           e.Punch,
+		AttendanceState: e.AttendanceState,
+		DeviceName:      e.DeviceName,
+	}
+	return list
+}
+
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------

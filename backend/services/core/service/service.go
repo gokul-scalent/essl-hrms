@@ -36,4 +36,12 @@ type EmployeeService interface {
 	ListEmployee(ctx context.Context, filter *filters.ListFilter) (int, []entity.Employee, errors.Response)
 }
 
+type AttendanceLogService interface {
+	CreateAttendanceLog(ctx context.Context, attendanceLog entity.AttendanceLog) (int, errors.Response)
+	PartialUpdateAttendanceLog(ctx context.Context, attendanceLog entity.AttendanceLog) errors.Response
+	UpdateAttendanceLog(ctx context.Context, attendanceLog entity.AttendanceLog) errors.Response
+	GetAttendanceLogbyID(ctx context.Context, attendanceLogID int) (entity.AttendanceLog, errors.Response)
+	ListAttendanceLog(ctx context.Context, filter *filters.ListFilter) (int, []entity.AttendanceLog, errors.Response)
+}
+
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------
