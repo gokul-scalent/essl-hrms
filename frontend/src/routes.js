@@ -42,6 +42,7 @@ import Icon from "@mui/material/Icon";
 import Dashboard from "pages/dashboard";
 import SignIn from "pages/authentication/sign-in";
 import UsersListing from "pages/Users/UsersListing";
+import EmployeeList from "pages/Employee/EmployeeList";
 
 const routes = [
   {
@@ -74,6 +75,17 @@ const routes = [
     route: "/users-list",
     icon: <Icon fontSize="small">people</Icon>,
     component: <UsersListing />,
+    layout: "/admin",
+    roles: ["ADMIN"],
+  },
+  {
+    type: "collapse",
+    show: true,
+    name: "Employees",
+    key: "employees",
+    route: "/employees-list",
+    icon: <Icon fontSize="small">people</Icon>,
+    component: <EmployeeList />,
     layout: "/admin",
     roles: ["ADMIN"],
   },

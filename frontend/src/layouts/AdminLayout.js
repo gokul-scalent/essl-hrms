@@ -115,7 +115,7 @@ export default function AdminLayout() {
     <>
       <Sidenav
         color={sidenavColor}
-        brand={logo}
+        // brand={logo}
         routes={filterRoutesByRole(routes)}
         onMouseEnter={handleOnMouseEnter}
         onMouseLeave={handleOnMouseLeave}

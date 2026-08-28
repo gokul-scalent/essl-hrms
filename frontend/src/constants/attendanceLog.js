@@ -1,0 +1,1 @@
+export const attendanceLogList = "ATTENDANCE_LOG_LIST";

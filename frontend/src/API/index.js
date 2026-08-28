@@ -6,6 +6,8 @@ import {
   USERS_LIST,
   USERS,
   CHANGE_PASSWORD,
+  EMPLOYEE_LIST,
+  ATTENDANCE_LOG_LIST,
 } from "./apiConstants";
 
 const API = axios.create({
@@ -49,3 +51,23 @@ export const delete_user_by_ID = (id) => API.delete(`${USERS}${id}`);
 //change password
 export const change_password = (passwordData) =>
   API.patch(`${CHANGE_PASSWORD}`, passwordData);
+
+//get the employee list
+export const get_employee_list = (pageNum, filtersJSON, searchString) =>
+  API.get(EMPLOYEE_LIST, {
+    params: {
+      page: pageNum,
+      ...(filtersJSON ? { filtersJSON } : {}),
+      ...(searchString ? { searchString } : {}),
+    },
+  })
+
+//get the attendance log list
+export const get_attendance_log_list = (pageNum, filtersJSON, searchString) =>
+  API.get(ATTENDANCE_LOG_LIST, {
+    params: {
+      page: pageNum,
+      ...(filtersJSON ? { filtersJSON } : {}),
+      ...(searchString ? { searchString } : {}),
+    },
+  })
