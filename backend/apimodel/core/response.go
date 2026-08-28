@@ -46,4 +46,21 @@ type EmployeeListResponse struct {
 	Employee           []EmployeeResponse
 }
 
+type AttendanceLogResponse struct {
+	ID              int       `json:"ID"`
+	UID             int       `json:"uID"`
+	EmpID           string    `json:"empID"`
+	Timestamp       time.Time `json:"timestamp"`
+	Status          int       `json:"status"`
+	Punch           int       `json:"punch"`
+	AttendanceState string    `json:"attendanceState"`
+	DeviceName      string    `json:"deviceName"`
+}
+
+type AttendanceLogListResponse struct {
+	TotalRecords       int `json:"totalRecords"`
+	NoOfRecordsPerPage int `json:"noOfRecordsPerPage"`
+	AttendanceLog      []AttendanceLogResponse
+}
+
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------

@@ -39,4 +39,20 @@ func EmployeeModelToEmployeeEntity(m model.Employee) entity.Employee {
 	return e
 }
 
+func AttendanceLogModelToAttendanceLogEntity(m model.AttendanceLog) entity.AttendanceLog {
+	e := entity.AttendanceLog{
+
+		ID:              m.ID,
+		UID:             m.UID,
+		EmpID:           m.EmpID,
+		Timestamp:       m.Timestamp,
+		Status:          m.Status,
+		Punch:           m.Punch,
+		AttendanceState: m.AttendanceState,
+		DeviceName:      m.DeviceName,
+		CreatedAt:       m.CreatedAt.Time,
+	}
+	return e
+}
+
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------

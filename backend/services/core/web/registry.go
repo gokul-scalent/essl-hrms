@@ -12,12 +12,13 @@ import (
 )
 
 type CoreHandlerRegistryOptions struct {
-	Config          *server.Config
-	Middleware      middleware.Middleware
-	HomeService     coreService.HomeService
-	UserService     coreService.UserService
-	LoginService    coreService.LoginService
-	EmployeeService coreService.EmployeeService
+	Config               *server.Config
+	Middleware           middleware.Middleware
+	HomeService          coreService.HomeService
+	UserService          coreService.UserService
+	LoginService         coreService.LoginService
+	EmployeeService      coreService.EmployeeService
+	AttendanceLogService coreService.AttendanceLogService
 }
 
 type CoreHandlerRegistry struct {
@@ -81,6 +82,17 @@ func (h CoreHandlerRegistry) registerRoutes() (*gin.Engine, error) {
 
 	//---add the following line above in CoreHandlerRegistryOptions struct
 	//---EmployeeService  coreService.EmployeeService
+	//---delete these lines after copy
+
+	attendanceLogRouter := coreRouter.Group("/attendance-log")
+	attendanceLogRouter.POST("/", h.CreateAttendanceLogHandler)
+	attendanceLogRouter.PATCH("/:id", h.PartialUpdateAttendanceLogHandler)
+	attendanceLogRouter.PUT("/:id", h.UpdateAttendanceLogHandler)
+	attendanceLogRouter.GET("/:id", h.GetAttendanceLogbyIDHandler)
+	attendanceLogRouter.GET("/list", h.ListAttendanceLogHandler)
+
+	//---add the following line above in CoreHandlerRegistryOptions struct
+	//---AttendanceLogService  coreService.AttendanceLogService
 	//---delete these lines after copy
 
 	//-----==-----==DO NOT ADD CODE BELOW THIS LINE------
