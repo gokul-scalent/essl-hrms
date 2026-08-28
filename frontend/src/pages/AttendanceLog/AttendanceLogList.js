@@ -26,6 +26,8 @@ function AttendanceLogList() {
   const [filterState, setFilterState] = useState({
     searchString: "",
     status: null,
+    startDate: "",
+    endDate: "",
     filterParams: {
       filters: [],
       searchString: "",
@@ -102,6 +104,26 @@ function AttendanceLogList() {
   const buildFilterParams = () => {
     const filterParams = [];
 
+    if (filterState.startDate && filterState.endDate) {
+      filterParams.push({
+        field: "Timestamp",
+        condition: "btw",
+        filterValues: [filterState.startDate, filterState.endDate],
+      });
+    } else if (filterState.startDate) {
+      filterParams.push({
+        field: "Timestamp",
+        condition: "gteq",
+        filterValues: [filterState.startDate],
+      });
+    } else if (filterState.endDate) {
+      filterParams.push({
+        field: "Timestamp",
+        condition: "lteq",
+        filterValues: [`${filterState.endDate} 23:59:59`],
+      });
+    }
+
     return {
       filters: filterParams.length ? JSON.stringify(filterParams) : [],
       searchString: filterState.searchString.trim(),
@@ -112,6 +134,8 @@ function AttendanceLogList() {
     setFilterState({
       searchString: "",
       status: null,
+      startDate: "",
+      endDate: "",
       filterParams: {
         filters: [],
         searchString: "",
@@ -226,6 +250,41 @@ function AttendanceLogList() {
                           setFilterState({
                             ...filterState,
                             searchString: e.target.value,
+                          })
+                        }
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6} md={4} lg={2}>
+                      <TextField
+                        fullWidth
+                        type="date"
+                        label="Start Date"
+                        size="small"
+                        InputLabelProps={{ shrink: true }}
+                        value={filterState.startDate}
+                        onChange={(e) =>
+                          setFilterState({
+                            ...filterState,
+                            startDate: e.target.value,
+                          })
+                        }
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6} md={4} lg={2}>
+                      <TextField
+                        fullWidth
+                        type="date"
+                        label="End Date"
+                        size="small"
+                        InputLabelProps={{ shrink: true }}
+                        inputProps={{ min: filterState.startDate || undefined }}
+                        value={filterState.endDate}
+                        onChange={(e) =>
+                          setFilterState({
+                            ...filterState,
+                            endDate: e.target.value,
                           })
                         }
                       />
