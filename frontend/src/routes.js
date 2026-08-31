@@ -102,6 +102,17 @@ const routes = [
     layout: "/admin",
     roles: ["ADMIN"],
   },
+  {
+    type: "collapse",
+    show: true,
+    name: "Daily Attendance Log",
+    key: "dailyAttendanceLog",
+    route: "/daily-attendance",
+    icon: <Icon fontSize="small">event_note</Icon>,
+    component: <DailyAttendanceLog />,
+    layout: "/admin",
+    roles: ["ADMIN"],
+  },
 ];
 
 export default routes;

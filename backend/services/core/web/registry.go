@@ -90,6 +90,7 @@ func (h CoreHandlerRegistry) registerRoutes() (*gin.Engine, error) {
 	attendanceLogRouter.PUT("/:id", h.UpdateAttendanceLogHandler)
 	attendanceLogRouter.GET("/:id", h.GetAttendanceLogbyIDHandler)
 	attendanceLogRouter.GET("/list", h.ListAttendanceLogHandler)
+	attendanceLogRouter.GET("/daily", h.ListDailyAttendanceLogHandler)
 
 	//---add the following line above in CoreHandlerRegistryOptions struct
 	//---AttendanceLogService  coreService.AttendanceLogService

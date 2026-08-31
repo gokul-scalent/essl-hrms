@@ -5,11 +5,13 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/scalent.io/scalent-hrms/apimodel"
 	coreAPIModel "github.com/scalent.io/scalent-hrms/apimodel/core"
 	commonConstants "github.com/scalent.io/scalent-hrms/entity/commonConstants"
+	"github.com/scalent.io/scalent-hrms/entity/filters"
 	"github.com/scalent.io/scalent-hrms/internal/converter"
 	"github.com/scalent.io/scalent-hrms/pkg/context"
 	"github.com/scalent.io/scalent-hrms/pkg/errors"
@@ -196,4 +198,49 @@ func (h CoreHandlerRegistry) ListAttendanceLogHandler(c *gin.Context) {
 
 	log.Info("core>web>attendanceLog: attendance log list completed", reqID)
 	httpUtils.DataResponse(c, http.StatusOK, "attendance logs fetched successfully", attendanceLogResponse)
+}
+
+func (h CoreHandlerRegistry) ListDailyAttendanceLogHandler(c *gin.Context) {
+	reqID, _ := context.GetRequestIDFromContext(c.Request.Context())
+	log.Info("core>web>attendanceLog: daily attendance log list started", reqID)
+
+	queryParams := c.Request.URL.Query()
+
+	paramPageValue := queryParams.Get("page")
+	pageNo, _ := strconv.Atoi(paramPageValue)
+
+	empID := strings.TrimSpace(queryParams.Get("empID"))
+	fromDate := strings.TrimSpace(queryParams.Get("fromDate"))
+	toDate := strings.TrimSpace(queryParams.Get("toDate"))
+
+	// default to today if no date range given
+	if fromDate == "" && toDate == "" {
+		today := time.Now().Format("2006-01-02")
+		fromDate = today
+		toDate = today
+	}
+
+	filter := &filters.ListFilter{
+		Page: pageNo,
+	}
+
+	totalRecords, dailyLogsEntity, errResp := h.Options.AttendanceLogService.ListDailyAttendanceLog(c.Request.Context(), filter, empID, fromDate, toDate)
+	if errResp != nil {
+		log.Error(errResp.Error(), reqID)
+		httpUtils.ErrorResponse(c, errResp, nil)
+		return
+	}
+
+	dailyLogsResponse := []coreAPIModel.DailyAttendanceLogResponse{}
+	for _, e := range dailyLogsEntity {
+		dailyLogsResponse = append(dailyLogsResponse, converter.DailyAttendanceLogEntityToAttendanceLogAPIModelResponse(e))
+	}
+
+	var response coreAPIModel.DailyAttendanceLogListResponse
+	response.TotalRecords = totalRecords
+	response.NoOfRecordsPerPage = commonConstants.NO_OF_RECORDS_PER_PAGE
+	response.DailyAttendanceLog = dailyLogsResponse
+
+	log.Info("core>web>attendanceLog: daily attendance log list completed", reqID)
+	httpUtils.DataResponse(c, http.StatusOK, "daily attendance logs fetched successfully", response)
 }

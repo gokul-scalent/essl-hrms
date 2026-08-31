@@ -1,6 +1,9 @@
 package converter
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/scalent.io/scalent-hrms/entity"
 	"github.com/scalent.io/scalent-hrms/model"
 )
@@ -53,6 +56,45 @@ func AttendanceLogModelToAttendanceLogEntity(m model.AttendanceLog) entity.Atten
 		CreatedAt:       m.CreatedAt.Time,
 	}
 	return e
+}
+
+func DailyAttendanceLogModelToEntity(m model.DailyAttendanceLog) entity.DailyAttendanceLog {
+	e := entity.DailyAttendanceLog{
+
+		EmpID:   m.EmpID,
+		EmpName: m.EmpName,
+		Date:    m.LogDate,
+	}
+
+	if m.CheckIn.Valid {
+		checkInTime := m.CheckIn.Time
+		e.CheckIn = &checkInTime
+	}
+
+	if m.CheckOut.Valid {
+		checkOutTime := m.CheckOut.Time
+		e.CheckOut = &checkOutTime
+	}
+
+	switch {
+	case e.CheckIn != nil && e.CheckOut != nil:
+		e.Status = "PRESENT"
+		e.WorkingHours = formatWorkingHours(e.CheckOut.Sub(*e.CheckIn))
+	case e.CheckIn != nil && e.CheckOut == nil:
+		e.Status = "INCOMPLETE"
+		e.WorkingHours = "00:00"
+	default:
+		e.Status = "ABSENT"
+		e.WorkingHours = "00:00"
+	}
+
+	return e
+}
+
+func formatWorkingHours(d time.Duration) string {
+	hours := int(d.Hours())
+	minutes := int(d.Minutes()) % 60
+	return fmt.Sprintf("%02d:%02d", hours, minutes)
 }
 
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------

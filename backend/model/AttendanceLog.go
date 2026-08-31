@@ -28,3 +28,11 @@ var AttendanceLogModelMap = map[string]FieldStruct{
 	"DeviceName":      {MySQLDatatype: "varchar", FieldName: "device_name"},
 	"CreatedAt":       {MySQLDatatype: "timestamp", FieldName: "created_at"},
 }
+
+type DailyAttendanceLog struct {
+	EmpID    string       `db:"emp_id"`
+	EmpName  string       `db:"emp_name"`
+	LogDate  time.Time    `db:"log_date"`
+	CheckIn  sql.NullTime `db:"check_in"`
+	CheckOut sql.NullTime `db:"check_out"`
+}

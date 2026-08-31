@@ -42,6 +42,7 @@ type AttendanceLogService interface {
 	UpdateAttendanceLog(ctx context.Context, attendanceLog entity.AttendanceLog) errors.Response
 	GetAttendanceLogbyID(ctx context.Context, attendanceLogID int) (entity.AttendanceLog, errors.Response)
 	ListAttendanceLog(ctx context.Context, filter *filters.ListFilter) (int, []entity.AttendanceLog, errors.Response)
+	ListDailyAttendanceLog(ctx context.Context, filter *filters.ListFilter, empID, fromDate, toDate string) (int, []entity.DailyAttendanceLog, errors.Response)
 }
 
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------

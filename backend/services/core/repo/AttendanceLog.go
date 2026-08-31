@@ -241,3 +241,75 @@ func (r *AttendanceLogRepoImpl) GetAttendanceLogDetails(ctx context.Context, sel
 	log.Info("core>repo>attendanceLog: GetAttendanceLogDetails completed", reqID)
 	return &attendanceLogEntity, nil
 }
+
+func (r *AttendanceLogRepoImpl) ListDailyAttendanceLog(ctx context.Context, filter *filters.ListFilter, empID, fromDate, toDate string) (int, []entity.DailyAttendanceLog, errors.Response) {
+	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
+	log.Info("core>repo>attendanceLog: ListDailyAttendanceLog started", reqID)
+
+	baseQuery := `
+		SELECT
+			al.emp_id AS emp_id,
+			e.emp_name AS emp_name,
+			DATE(al.timestamp) AS log_date,
+			MIN(CASE WHEN al.punch = 0 THEN al.timestamp END) AS check_in,
+			MAX(CASE WHEN al.punch = 1 THEN al.timestamp END) AS check_out
+		FROM attendance_logs al
+		JOIN employees e ON e.emp_id = al.emp_id
+		WHERE al.device_name = 'Front Entry'
+	`
+
+	whereStr := []string{}
+	args := []interface{}{}
+
+	if empID != "" {
+		whereStr = append(whereStr, "al.emp_id = ?")
+		args = append(args, empID)
+	}
+	if fromDate != "" {
+		whereStr = append(whereStr, "DATE(al.timestamp) >= ?")
+		args = append(args, fromDate)
+	}
+	if toDate != "" {
+		whereStr = append(whereStr, "DATE(al.timestamp) <= ?")
+		args = append(args, toDate)
+	}
+
+	if len(whereStr) > 0 {
+		baseQuery += " AND " + strings.Join(whereStr, " AND ")
+	}
+
+	baseQuery += " GROUP BY al.emp_id, DATE(al.timestamp) ORDER BY log_date DESC"
+
+	totalRecordQueryStatement := "SELECT COUNT(*) as totalRecords FROM (" + baseQuery + ") as result"
+
+	var count int
+	err := r.db.Get(&count, totalRecordQueryStatement, args...)
+	if err != nil {
+		log.Error(err.Error(), reqID)
+		return 0, nil, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	limitQueryStmt := baseQuery
+	if filter.Page == 0 {
+		filter.Page = 1
+	}
+	offset := commonConstants.NO_OF_RECORDS_PER_PAGE * (filter.Page - 1)
+	limitQueryStmt += " LIMIT ?,?"
+	dataArgs := append(append([]interface{}{}, args...), offset, commonConstants.NO_OF_RECORDS_PER_PAGE)
+
+	dailyLogsModel := []model.DailyAttendanceLog{}
+
+	err = r.db.Select(&dailyLogsModel, limitQueryStmt, dataArgs...)
+	if err != nil {
+		log.Error(err.Error(), reqID)
+		return 0, nil, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	dailyLogsEntity := []entity.DailyAttendanceLog{}
+	for _, m := range dailyLogsModel {
+		dailyLogsEntity = append(dailyLogsEntity, converter.DailyAttendanceLogModelToEntity(m))
+	}
+
+	log.Info("core>repo>attendanceLog: ListDailyAttendanceLog completed", reqID)
+	return count, dailyLogsEntity, nil
+}

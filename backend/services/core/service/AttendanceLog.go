@@ -90,3 +90,17 @@ func (s *AttendanceLogServiceImpl) ListAttendanceLog(ctx context.Context, filter
 	log.Info("core>service>attendanceLog: attendance log list completed", reqID)
 	return totalRecords, attendanceLogsEntity, nil
 }
+
+func (s *AttendanceLogServiceImpl) ListDailyAttendanceLog(ctx context.Context, filter *filters.ListFilter, empID, fromDate, toDate string) (int, []entity.DailyAttendanceLog, errors.Response) {
+	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
+	log.Info("core>service>attendanceLog: daily attendance log list started", reqID)
+
+	totalRecords, dailyLogsEntity, errResp := s.attendanceLogRepo.ListDailyAttendanceLog(ctx, filter, empID, fromDate, toDate)
+	if errResp != nil {
+		log.Error(errResp.Error(), reqID)
+		return 0, nil, errResp
+	}
+
+	log.Info("core>service>attendanceLog: daily attendance log list completed", reqID)
+	return totalRecords, dailyLogsEntity, nil
+}

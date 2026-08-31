@@ -54,4 +54,28 @@ func AttendanceLogEntityToAttendanceLogAPIModelResponse(e entity.AttendanceLog) 
 	return list
 }
 
+func DailyAttendanceLogEntityToAttendanceLogAPIModelResponse(e entity.DailyAttendanceLog) coreAPIModel.DailyAttendanceLogResponse {
+	checkInStr := ""
+	if e.CheckIn != nil {
+		checkInStr = e.CheckIn.Format("15:04")
+	}
+
+	checkOutStr := ""
+	if e.CheckOut != nil {
+		checkOutStr = e.CheckOut.Format("15:04")
+	}
+
+	r := coreAPIModel.DailyAttendanceLogResponse{
+
+		EmpID:        e.EmpID,
+		EmpName:      e.EmpName,
+		Date:         e.Date.Format("2006-01-02"),
+		CheckIn:      checkInStr,
+		CheckOut:     checkOutStr,
+		WorkingHours: e.WorkingHours,
+		Status:       e.Status,
+	}
+	return r
+}
+
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------

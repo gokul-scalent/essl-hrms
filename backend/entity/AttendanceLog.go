@@ -13,3 +13,13 @@ type AttendanceLog struct {
 	DeviceName      string
 	CreatedAt       time.Time
 }
+
+type DailyAttendanceLog struct {
+	EmpID        string
+	EmpName      string
+	Date         time.Time
+	CheckIn      *time.Time
+	CheckOut     *time.Time
+	WorkingHours string
+	Status       string
+}
