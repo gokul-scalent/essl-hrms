@@ -208,7 +208,7 @@ function EmployeeList() {
                     <Grid item xs={12} sm={6} md={4} lg={2}>
                       <TextField
                         fullWidth
-                        placeholder="Search by name "
+                        placeholder="Search by Emp ID or name"
                         size="small"
                         value={filterState.searchString}
                         onChange={(e) =>

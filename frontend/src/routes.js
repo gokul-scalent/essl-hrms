@@ -44,6 +44,7 @@ import SignIn from "pages/authentication/sign-in";
 import UsersListing from "pages/Users/UsersListing";
 import EmployeeList from "pages/Employee/EmployeeList";
 import AttendanceLogList from "pages/AttendanceLog/AttendanceLogList";
+import DailyAttendanceLog from "pages/DailyAttendanceLog/DailyAttendanceLog";
 
 const routes = [
   {
@@ -98,6 +99,17 @@ const routes = [
     route: "/attendanceLog-list",
     icon: <Icon fontSize="small">event_note</Icon>,
     component: <AttendanceLogList />,
+    layout: "/admin",
+    roles: ["ADMIN"],
+  },
+  {
+    type: "collapse",
+    show: true,
+    name: "Daily Attendance Log",
+    key: "dailyAttendanceLog",
+    route: "/daily-attendances",
+    icon: <Icon fontSize="small">event_note</Icon>,
+    component: <DailyAttendanceLog />,
     layout: "/admin",
     roles: ["ADMIN"],
   },

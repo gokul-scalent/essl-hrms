@@ -158,6 +158,7 @@ func (h CoreHandlerRegistry) ListAttendanceLogHandler(c *gin.Context) {
 
 	paramPageValue := queryParams.Get("page")
 	pageNo, _ := strconv.Atoi(paramPageValue)
+	paramSearchString := queryParams.Get("searchString")
 
 	paramFilterVAlue := queryParams.Get("filtersJSON")
 	var filtersArray []apimodel.Filter
@@ -170,6 +171,7 @@ func (h CoreHandlerRegistry) ListAttendanceLogHandler(c *gin.Context) {
 	listFiltersRequest.Page = pageNo
 	listFiltersRequest.Filters = filtersArray
 	listFiltersRequest.SortOption = sortOption
+	listFiltersRequest.SearchString = paramSearchString
 
 	filterEntity := converter.FilterAPIRequestToFilterEntity(listFiltersRequest)
 

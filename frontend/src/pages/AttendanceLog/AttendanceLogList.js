@@ -1,7 +1,18 @@
 import React, { useEffect, useState } from "react";
-import { Card, Grid, Icon, TextField } from "@mui/material";
+import {
+  Card,
+  FormControl,
+  Grid,
+  Icon,
+  MenuItem,
+  Select,
+  TextField,
+} from "@mui/material";
 import { DEFAULT_RECORDS_PER_PAGE } from "components/common/constant";
-import { wrapCell, selectSx } from "components/CommonComponent/CommonFunction";
+import {
+  wrapCell,
+  formatDateTime,
+} from "components/CommonComponent/CommonFunction";
 import DataTable from "examples/Tables/DataTable";
 import { useDispatch, useSelector } from "react-redux";
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
@@ -10,7 +21,9 @@ import MDButton from "components/MDButton";
 import MDTypography from "components/MDTypography";
 import { getAttendanceLogList } from "actions/attendanceLog";
 import { attendanceLogList } from "constants/attendanceLog";
-import { formatDateTime } from "components/CommonComponent/CommonFunction";
+import { ATTENDANCE_LOG_STATE } from "components/common/constant";
+import { selectSx } from "components/CommonComponent/CommonFunction";
+import { ArrowDropDown } from "@mui/icons-material";
 
 function AttendanceLogList() {
   const dispatch = useDispatch();
@@ -25,7 +38,7 @@ function AttendanceLogList() {
   });
   const [filterState, setFilterState] = useState({
     searchString: "",
-    status: null,
+    attendanceState: null,
     startDate: "",
     endDate: "",
     filterParams: {
@@ -124,6 +137,13 @@ function AttendanceLogList() {
       });
     }
 
+    if (filterState.attendanceState) {
+      filterParams.push({
+        field: "AttendanceState",
+        condition: "eq",
+        filterValues: [filterState.attendanceState],
+      });
+    }
     return {
       filters: filterParams.length ? JSON.stringify(filterParams) : [],
       searchString: filterState.searchString.trim(),
@@ -133,7 +153,7 @@ function AttendanceLogList() {
   const handleClear = () => {
     setFilterState({
       searchString: "",
-      status: null,
+      attendanceState: null,
       startDate: "",
       endDate: "",
       filterParams: {
@@ -243,7 +263,7 @@ function AttendanceLogList() {
                     <Grid item xs={12} sm={6} md={4} lg={2}>
                       <TextField
                         fullWidth
-                        placeholder="Search by name "
+                        placeholder="Search by emp ID or device name "
                         size="small"
                         value={filterState.searchString}
                         onChange={(e) =>
@@ -253,6 +273,42 @@ function AttendanceLogList() {
                           })
                         }
                       />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6} md={4} lg={2}>
+                      <FormControl fullWidth size="small" sx={selectSx("100%")}>
+                        <Select
+                          value={filterState.attendanceState || ""}
+                          displayEmpty
+                          onChange={(e) =>
+                            setFilterState({
+                              ...filterState,
+                              attendanceState: e.target.value,
+                            })
+                          }
+                          IconComponent={ArrowDropDown}
+                          renderValue={(selected) => {
+                            if (!selected) {
+                              return (
+                                <span style={{ color: "rgba(0, 0, 0, 0.38)" }}>
+                                  Select Attendance Log state
+                                </span>
+                              );
+                            }
+
+                            const selectedState = ATTENDANCE_LOG_STATE.find(
+                              (p) => p.label === selected,
+                            );
+                            return selectedState?.value || selected;
+                          }}
+                        >
+                          {ATTENDANCE_LOG_STATE.map((p) => (
+                            <MenuItem key={p.label} value={p.label}>
+                              {p.value}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
                     </Grid>
 
                     <Grid item xs={12} sm={6} md={4} lg={2}>
