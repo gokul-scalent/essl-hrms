@@ -201,7 +201,6 @@ func (r *AttendanceLogRepoImpl) ListAttendanceLog(ctx context.Context, filter *f
 		}
 
 		offset := commonConstants.NO_OF_RECORDS_PER_PAGE * (filter.Page - 1)
-
 		limitQueryStmt = queryStatement + " LIMIT ?,?"
 		args = append(args, offset, commonConstants.NO_OF_RECORDS_PER_PAGE)
 	}
@@ -222,7 +221,6 @@ func (r *AttendanceLogRepoImpl) ListAttendanceLog(ctx context.Context, filter *f
 	}
 
 	log.Info("core>repo>attendanceLog: ListAttendanceLog completed", reqID)
-
 	return count, attendanceLogEntities, nil
 }
 
