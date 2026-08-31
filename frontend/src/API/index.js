@@ -8,6 +8,7 @@ import {
   CHANGE_PASSWORD,
   EMPLOYEE_LIST,
   ATTENDANCE_LOG_LIST,
+  DAILY_ATTENDANCE_LOG_LIST,
 } from "./apiConstants";
 
 const API = axios.create({
@@ -41,11 +42,12 @@ export const get_users_list = (pageNum, filtersJSON, searchString) =>
   });
 
 //add users
-export const add_users = (bodyData) => API.post(`${USERS}`,bodyData);
+export const add_users = (bodyData) => API.post(`${USERS}`, bodyData);
 //update user list
-export const update_user_by_id =(id, bodyData) => API.patch(`${USERS}${id}`, bodyData);
+export const update_user_by_id = (id, bodyData) =>
+  API.patch(`${USERS}${id}`, bodyData);
 //get user details by id
-export const get_user_details_by_user =(id) => API.get(`${USERS}${id}`);
+export const get_user_details_by_user = (id) => API.get(`${USERS}${id}`);
 export const delete_user_by_ID = (id) => API.delete(`${USERS}${id}`);
 
 //change password
@@ -60,7 +62,7 @@ export const get_employee_list = (pageNum, filtersJSON, searchString) =>
       ...(filtersJSON ? { filtersJSON } : {}),
       ...(searchString ? { searchString } : {}),
     },
-  })
+  });
 
 //get the attendance log list
 export const get_attendance_log_list = (pageNum, filtersJSON, searchString) =>
@@ -70,4 +72,13 @@ export const get_attendance_log_list = (pageNum, filtersJSON, searchString) =>
       ...(filtersJSON ? { filtersJSON } : {}),
       ...(searchString ? { searchString } : {}),
     },
-  })
+  });
+
+export const get_daily_attendance_log_list = (pageNum, filtersJSON, searchString) =>
+  API.get(DAILY_ATTENDANCE_LOG_LIST, {
+    params: {
+      page: pageNum,
+      ...(filtersJSON ? { filtersJSON } : {}),
+      ...(searchString ? { searchString } : {}),
+    },
+  });

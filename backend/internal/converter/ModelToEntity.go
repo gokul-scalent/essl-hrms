@@ -65,12 +65,12 @@ func DailyAttendanceLogModelToEntity(m model.DailyAttendanceLog) entity.DailyAtt
 		EmpName: m.EmpName,
 		Date:    m.LogDate,
 	}
-
+	//check whether the employee has check in time yes-> true otherwise -> false
 	if m.CheckIn.Valid {
 		checkInTime := m.CheckIn.Time
 		e.CheckIn = &checkInTime
 	}
-
+	//check whether the employee has check out time yes-> true otherwise -> false
 	if m.CheckOut.Valid {
 		checkOutTime := m.CheckOut.Time
 		e.CheckOut = &checkOutTime
@@ -91,10 +91,10 @@ func DailyAttendanceLogModelToEntity(m model.DailyAttendanceLog) entity.DailyAtt
 	return e
 }
 
-func formatWorkingHours(d time.Duration) string {
+func formatWorkingHours(d time.Duration) string { //suppose d = 7 hours 35 min
 	hours := int(d.Hours())
-	minutes := int(d.Minutes()) % 60
-	return fmt.Sprintf("%02d:%02d", hours, minutes)
+	minutes := int(d.Minutes()) % 60                //divide the minutes %60
+	return fmt.Sprintf("%02d:%02d", hours, minutes) //%02d -> no with atleast 2 digit
 }
 
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------

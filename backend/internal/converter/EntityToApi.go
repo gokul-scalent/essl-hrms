@@ -57,7 +57,7 @@ func AttendanceLogEntityToAttendanceLogAPIModelResponse(e entity.AttendanceLog) 
 func DailyAttendanceLogEntityToAttendanceLogAPIModelResponse(e entity.DailyAttendanceLog) coreAPIModel.DailyAttendanceLogResponse {
 	checkInStr := ""
 	if e.CheckIn != nil {
-		checkInStr = e.CheckIn.Format("15:04")
+		checkInStr = e.CheckIn.Format("15:04") //converting the utc date format into api response format eg: 2026-08-31 10:45:32 -> 10:45
 	}
 
 	checkOutStr := ""
@@ -69,7 +69,7 @@ func DailyAttendanceLogEntityToAttendanceLogAPIModelResponse(e entity.DailyAtten
 
 		EmpID:        e.EmpID,
 		EmpName:      e.EmpName,
-		Date:         e.Date.Format("2006-01-02"),
+		Date:         e.Date.Format("2006-01-02"), //converting the utc date format into api response format eg: 2026-08-31 10:45:32 ->  2026-08-31
 		CheckIn:      checkInStr,
 		CheckOut:     checkOutStr,
 		WorkingHours: e.WorkingHours,
