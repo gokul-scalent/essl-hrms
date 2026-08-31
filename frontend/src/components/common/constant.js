@@ -66,3 +66,8 @@ export const STATUS = [
   { label: "ACTIVE", value: "Active" },
   { label: "INACTIVE", value: "Inactive" },
 ];
+
+export const ATTENDANCE_LOG_STATE = [
+  { label: "CHECK_OUT", value: "Check Out" },
+  { label: "CHECK_IN", value: "Check In" },
+];

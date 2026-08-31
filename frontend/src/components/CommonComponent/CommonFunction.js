@@ -106,7 +106,7 @@ export const leadCsvStyles = {
   },
   sampleText: {
     wordBreak: "break-word",
-     color: colors.grey[800],
+    color: colors.grey[800],
   },
 };
 
@@ -181,6 +181,8 @@ export const formatDateTime = (date) => {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    hour12: true,
+    timeZone: "UTC",
   });
 };
 

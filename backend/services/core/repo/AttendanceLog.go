@@ -156,19 +156,31 @@ func (r *AttendanceLogRepoImpl) ListAttendanceLog(ctx context.Context, filter *f
 
 	whereStr, args := filterPkg.CreateFilterStr(filter.Filters, modelmap)
 
+	// Search attendance logs by employee ID, device name
+	if filter.SearchString != "" {
+		search := "%" + strings.TrimSpace(filter.SearchString) + "%"
+
+		whereStr = append(
+			whereStr,
+			"(attendance_logs.emp_id LIKE ? OR attendance_logs.device_name LIKE ?)",
+		)
+		args = append(args, search, search)
+	}
+
 	if len(whereStr) > 0 {
 		whereString := strings.Join(whereStr, " AND ")
 		queryStatement += " WHERE " + whereString
 	}
 
 	sortStr := filterPkg.CreateSortStr(filter.SortOption, modelmap)
-	queryStatement = queryStatement + sortStr
+	queryStatement += sortStr
 
 	var limitQueryStmt string
 
 	emptySortOption := filters.SortOption{}
 
-	totalRecordQueryStatement := "SELECT COUNT(id) as totalRecords FROM (" + queryStatement + ") as result  "
+	totalRecordQueryStatement := "SELECT COUNT(id) as totalRecords FROM (" + queryStatement + ") as result"
+
 	var count int
 	err := r.db.Get(&count, totalRecordQueryStatement, args...)
 	if err != nil {
@@ -176,10 +188,10 @@ func (r *AttendanceLogRepoImpl) ListAttendanceLog(ctx context.Context, filter *f
 		return 0, nil, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
 	}
 
-	if filter.Page == 0 && len(filter.Filters) == 0 && filter.SortOption == emptySortOption {
+	if filter.Page == 0 && len(filter.Filters) == 0 && filter.SortOption == emptySortOption && filter.SearchString == "" {
 		limitQueryStmt = queryStatement
 
-	} else if filter.Page == 0 || filter.Page != 0 || len(filter.Filters) > 0 || filter.SortOption != emptySortOption {
+	} else {
 		if filter.Page == 0 {
 			filter.Page = 1
 		}

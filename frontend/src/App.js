@@ -124,7 +124,7 @@ export default function App() {
         <>
           <Sidenav
             color={sidenavColor}
-            brand={logo}
+            // brand={logo}
             brandName="Scalent HRMS"
             routes={routes}
             onMouseEnter={handleOnMouseEnter}

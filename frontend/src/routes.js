@@ -42,6 +42,9 @@ import Icon from "@mui/material/Icon";
 import Dashboard from "pages/dashboard";
 import SignIn from "pages/authentication/sign-in";
 import UsersListing from "pages/Users/UsersListing";
+import EmployeeList from "pages/Employee/EmployeeList";
+import AttendanceLogList from "pages/AttendanceLog/AttendanceLogList";
+import DailyAttendanceLog from "pages/DailyAttendanceLog/DailyAttendanceLog";
 
 const routes = [
   {
@@ -72,8 +75,30 @@ const routes = [
     name: "Users",
     key: "users",
     route: "/users-list",
-    icon: <Icon fontSize="small">people</Icon>,
+    icon: <Icon fontSize="small">manage_accounts</Icon>,
     component: <UsersListing />,
+    layout: "/admin",
+    roles: ["ADMIN"],
+  },
+  {
+    type: "collapse",
+    show: true,
+    name: "Employees",
+    key: "employees",
+    route: "/employees-list",
+    icon: <Icon fontSize="small">badge</Icon>,
+    component: <EmployeeList />,
+    layout: "/admin",
+    roles: ["ADMIN"],
+  },
+  {
+    type: "collapse",
+    show: true,
+    name: "Attendance Log",
+    key: "attendanceLog",
+    route: "/attendanceLog-list",
+    icon: <Icon fontSize="small">event_note</Icon>,
+    component: <AttendanceLogList />,
     layout: "/admin",
     roles: ["ADMIN"],
   },

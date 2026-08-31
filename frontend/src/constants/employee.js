@@ -1,0 +1,1 @@
+export const employeeList = "EMPLOYEE_LIST";
