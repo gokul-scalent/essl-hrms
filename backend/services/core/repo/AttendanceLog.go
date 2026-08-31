@@ -273,14 +273,27 @@ func (r *AttendanceLogRepoImpl) ListDailyAttendanceLog(ctx context.Context, filt
 		whereStr = append(whereStr, "DATE(al.timestamp) <= ?")
 		args = append(args, toDate)
 	}
+	// Search by Employee ID or Employee Name
+	if filter.SearchString != "" {
+		search := "%" + strings.TrimSpace(filter.SearchString) + "%"
+
+		whereStr = append(
+			whereStr,
+			"(al.emp_id LIKE ? OR e.emp_name LIKE ?)",
+		)
+		args = append(args, search, search)
+	}
 
 	if len(whereStr) > 0 {
 		baseQuery += " AND " + strings.Join(whereStr, " AND ")
 	}
 
-	baseQuery += " GROUP BY al.emp_id, DATE(al.timestamp) ORDER BY log_date DESC"
-
-	totalRecordQueryStatement := "SELECT COUNT(*) as totalRecords FROM (" + baseQuery + ") as result"
+	baseQuery += `
+		GROUP BY al.emp_id, e.emp_name, DATE(al.timestamp)
+		ORDER BY log_date DESC
+	`
+	totalRecordQueryStatement :=
+		"SELECT COUNT(*) as totalRecords FROM (" + baseQuery + ") as result"
 
 	var count int
 	err := r.db.Get(&count, totalRecordQueryStatement, args...)
@@ -289,25 +302,35 @@ func (r *AttendanceLogRepoImpl) ListDailyAttendanceLog(ctx context.Context, filt
 		return 0, nil, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
 	}
 
-	limitQueryStmt := baseQuery
 	if filter.Page == 0 {
 		filter.Page = 1
 	}
 	offset := commonConstants.NO_OF_RECORDS_PER_PAGE * (filter.Page - 1)
-	limitQueryStmt += " LIMIT ?,?"
-	dataArgs := append(append([]interface{}{}, args...), offset, commonConstants.NO_OF_RECORDS_PER_PAGE)
 
+	limitQueryStmt := baseQuery + " LIMIT ?,?"
+
+	dataArgs := append(
+		append([]interface{}{}, args...),
+		offset,
+		commonConstants.NO_OF_RECORDS_PER_PAGE,
+	)
 	dailyLogsModel := []model.DailyAttendanceLog{}
 
-	err = r.db.Select(&dailyLogsModel, limitQueryStmt, dataArgs...)
+	err = r.db.Select(
+		&dailyLogsModel,
+		limitQueryStmt,
+		dataArgs...,
+	)
 	if err != nil {
 		log.Error(err.Error(), reqID)
 		return 0, nil, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
 	}
-
 	dailyLogsEntity := []entity.DailyAttendanceLog{}
 	for _, m := range dailyLogsModel {
-		dailyLogsEntity = append(dailyLogsEntity, converter.DailyAttendanceLogModelToEntity(m))
+		dailyLogsEntity = append(
+			dailyLogsEntity,
+			converter.DailyAttendanceLogModelToEntity(m),
+		)
 	}
 
 	log.Info("core>repo>attendanceLog: ListDailyAttendanceLog completed", reqID)

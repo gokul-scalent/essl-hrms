@@ -212,8 +212,9 @@ func (h CoreHandlerRegistry) ListDailyAttendanceLogHandler(c *gin.Context) {
 	empID := strings.TrimSpace(queryParams.Get("empID"))
 	fromDate := strings.TrimSpace(queryParams.Get("fromDate"))
 	toDate := strings.TrimSpace(queryParams.Get("toDate"))
+	searchString := strings.TrimSpace(queryParams.Get("searchString"))
 
-	// default to today if no date range given
+	// Default to today if no date range is given
 	if fromDate == "" && toDate == "" {
 		today := time.Now().Format("2006-01-02")
 		fromDate = today
@@ -221,10 +222,19 @@ func (h CoreHandlerRegistry) ListDailyAttendanceLogHandler(c *gin.Context) {
 	}
 
 	filter := &filters.ListFilter{
-		Page: pageNo,
+		Page:         pageNo,
+		SearchString: searchString,
 	}
 
-	totalRecords, dailyLogsEntity, errResp := h.Options.AttendanceLogService.ListDailyAttendanceLog(c.Request.Context(), filter, empID, fromDate, toDate)
+	totalRecords, dailyLogsEntity, errResp :=
+		h.Options.AttendanceLogService.ListDailyAttendanceLog(
+			c.Request.Context(),
+			filter,
+			empID,
+			fromDate,
+			toDate,
+		)
+
 	if errResp != nil {
 		log.Error(errResp.Error(), reqID)
 		httpUtils.ErrorResponse(c, errResp, nil)
@@ -233,7 +243,10 @@ func (h CoreHandlerRegistry) ListDailyAttendanceLogHandler(c *gin.Context) {
 
 	dailyLogsResponse := []coreAPIModel.DailyAttendanceLogResponse{}
 	for _, e := range dailyLogsEntity {
-		dailyLogsResponse = append(dailyLogsResponse, converter.DailyAttendanceLogEntityToAttendanceLogAPIModelResponse(e))
+		dailyLogsResponse = append(
+			dailyLogsResponse,
+			converter.DailyAttendanceLogEntityToAttendanceLogAPIModelResponse(e),
+		)
 	}
 
 	var response coreAPIModel.DailyAttendanceLogListResponse
