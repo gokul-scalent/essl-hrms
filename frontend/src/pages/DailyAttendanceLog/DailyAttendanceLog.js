@@ -12,7 +12,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { getDailyAttendanceLogList } from "actions/attendanceLog";
 import { dailyAttendanceLogList } from "constants/attendanceLog";
 import { DEFAULT_RECORDS_PER_PAGE } from "components/common/constant";
-import { wrapCell } from "components/CommonComponent/CommonFunction";
+import {
+  wrapCell,
+  formatDate,
+} from "components/CommonComponent/CommonFunction";
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import MDBox from "components/MDBox";
 import MDButton from "components/MDButton";
@@ -177,12 +180,6 @@ function DailyAttendanceLog() {
       Cell: (cell) => wrapCell(cell.value || "-", "200px"),
     },
     {
-      Header: "Date",
-      accessor: "date",
-      align: "left",
-      width: "100px",
-    },
-    {
       Header: "Check-In Time",
       accessor: "checkIn",
       align: "left",
@@ -206,6 +203,13 @@ function DailyAttendanceLog() {
       align: "left",
       width: "100px",
     },
+    {
+      Header: "Date",
+      accessor: "date",
+      align: "left",
+      width: "100px",
+      Cell: (cell) => (cell.value ? formatDate(cell.value) : "-"),
+    },
   ];
 
   return (
@@ -224,7 +228,7 @@ function DailyAttendanceLog() {
                   alignItems="center"
                 >
                   <MDTypography variant="h5" fontWeight="bold">
-                    Attendance Log Lists
+                    Daily Attendance Log Lists
                   </MDTypography>
                 </MDBox>
 

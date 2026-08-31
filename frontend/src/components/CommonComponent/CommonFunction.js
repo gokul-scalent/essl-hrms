@@ -186,6 +186,16 @@ export const formatDateTime = (date) => {
   });
 };
 
+export const formatDate = (date) => {
+  if (!date) return "-";
+
+  return new Date(date).toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
 export const encodePassword = (password) => {
   const salted = PASSWORD_SALT + password;
   return btoa(salted); // Convert the salted string into Base64 format
