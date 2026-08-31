@@ -188,11 +188,7 @@ func (r *AttendanceLogRepoImpl) ListAttendanceLog(ctx context.Context, filter *f
 		return 0, nil, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
 	}
 
-	if filter.Page == 0 &&
-		len(filter.Filters) == 0 &&
-		filter.SortOption == emptySortOption &&
-		filter.SearchString == "" {
-
+	if filter.Page == 0 && len(filter.Filters) == 0 && filter.SortOption == emptySortOption && filter.SearchString == "" {
 		limitQueryStmt = queryStatement
 
 	} else {
