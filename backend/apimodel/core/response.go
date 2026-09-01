@@ -63,14 +63,18 @@ type AttendanceLogListResponse struct {
 	AttendanceLog      []AttendanceLogResponse
 }
 
+type AttendancePunchResponse struct {
+	CheckIn  string `json:"checkIn"`
+	CheckOut string `json:"checkOut"`
+}
+
 type DailyAttendanceLogResponse struct {
-	EmpID        string `json:"empID"`
-	EmpName      string `json:"empName"`
-	Date         string `json:"date"`
-	CheckIn      string `json:"checkIn"`
-	CheckOut     string `json:"checkOut"`
-	WorkingHours string `json:"workingHours"`
-	Status       string `json:"status"`
+	EmpID        string                    `json:"empID"`
+	EmpName      string                    `json:"empName"`
+	Date         string                    `json:"date"`
+	Punches      []AttendancePunchResponse `json:"punches"`
+	WorkingHours string                    `json:"workingHours"`
+	Status       string                    `json:"status"`
 }
 
 type DailyAttendanceLogListResponse struct {

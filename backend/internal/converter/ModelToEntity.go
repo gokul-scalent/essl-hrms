@@ -1,9 +1,6 @@
 package converter
 
 import (
-	"fmt"
-	"time"
-
 	"github.com/scalent.io/scalent-hrms/entity"
 	"github.com/scalent.io/scalent-hrms/model"
 )
@@ -59,42 +56,12 @@ func AttendanceLogModelToAttendanceLogEntity(m model.AttendanceLog) entity.Atten
 }
 
 func DailyAttendanceLogModelToEntity(m model.DailyAttendanceLog) entity.DailyAttendanceLog {
-	e := entity.DailyAttendanceLog{
-
+	return entity.DailyAttendanceLog{
 		EmpID:   m.EmpID,
 		EmpName: m.EmpName,
 		Date:    m.LogDate,
+		Punches: []entity.AttendancePunch{},
 	}
-	//check whether the employee has check in time yes-> true otherwise -> false
-	if m.CheckIn.Valid {
-		checkInTime := m.CheckIn.Time
-		e.CheckIn = &checkInTime
-	}
-	//check whether the employee has check out time yes-> true otherwise -> false
-	if m.CheckOut.Valid {
-		checkOutTime := m.CheckOut.Time
-		e.CheckOut = &checkOutTime
-	}
-
-	switch {
-	case e.CheckIn != nil && e.CheckOut != nil:
-		e.Status = "PRESENT"
-		e.WorkingHours = formatWorkingHours(e.CheckOut.Sub(*e.CheckIn))
-	case e.CheckIn != nil && e.CheckOut == nil:
-		e.Status = "INCOMPLETE"
-		e.WorkingHours = "00:00"
-	default:
-		e.Status = "ABSENT"
-		e.WorkingHours = "00:00"
-	}
-
-	return e
-}
-
-func formatWorkingHours(d time.Duration) string { //suppose d = 7 hours 35 min
-	hours := int(d.Hours())
-	minutes := int(d.Minutes()) % 60                //divide the minutes %60
-	return fmt.Sprintf("%02d:%02d", hours, minutes) //%02d -> no with atleast 2 digit
 }
 
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------

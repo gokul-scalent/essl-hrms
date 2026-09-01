@@ -152,8 +152,12 @@ function DailyAttendanceLog() {
         empID: item?.empID || "-",
         empName: item?.empName || "-",
         date: item?.date || null,
-        checkIn: item?.checkIn ?? "-",
-        checkOut: item?.checkOut ?? "-",
+        checkIn:
+          item?.punches?.map((punch) => punch?.checkIn || "-").join(", ") ||
+          "-",
+        checkOut:
+          item?.punches?.map((punch) => punch?.checkOut || "-").join(", ") ||
+          "-",
         workingHours: item?.workingHours || "-",
         status: item?.status || "-",
       }),

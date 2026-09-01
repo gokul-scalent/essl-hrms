@@ -168,18 +168,17 @@ func (r *AttendanceLogRepoImpl) ListAttendanceLog(ctx context.Context, filter *f
 	}
 
 	if len(whereStr) > 0 {
-		whereString := strings.Join(whereStr, " AND ")
-		queryStatement += " WHERE " + whereString
+		queryStatement += " WHERE " + strings.Join(whereStr, " AND ")
 	}
 
-	sortStr := filterPkg.CreateSortStr(filter.SortOption, modelmap)
-	queryStatement += sortStr
+	// Latest attendance record first
+	queryStatement += " ORDER BY timestamp DESC"
 
 	var limitQueryStmt string
 
 	emptySortOption := filters.SortOption{}
 
-	totalRecordQueryStatement := "SELECT COUNT(id) as totalRecords FROM (" + queryStatement + ") as result"
+	totalRecordQueryStatement := "SELECT COUNT(id) FROM (" + queryStatement + ") AS result"
 
 	var count int
 	err := r.db.Get(&count, totalRecordQueryStatement, args...)
@@ -242,19 +241,21 @@ func (r *AttendanceLogRepoImpl) GetAttendanceLogDetails(ctx context.Context, sel
 	return &attendanceLogEntity, nil
 }
 
-func (r *AttendanceLogRepoImpl) ListDailyAttendanceLog(ctx context.Context, filter *filters.ListFilter, empID, fromDate, toDate string) (int, []entity.DailyAttendanceLog, errors.Response) {
+func (r *AttendanceLogRepoImpl) ListDailyAttendanceLog(ctx context.Context, filter *filters.ListFilter, empID, fromDate, toDate string) (int, []model.DailyAttendanceLog, errors.Response) {
+
 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
 	log.Info("core>repo>attendanceLog: ListDailyAttendanceLog started", reqID)
 
-	baseQuery := `
+	query := `
 		SELECT
-			al.emp_id AS emp_id,
-			e.emp_name AS emp_name,
+			al.emp_id,
+			e.emp_name,
 			DATE(al.timestamp) AS log_date,
-			MIN(CASE WHEN al.punch = 0 THEN al.timestamp END) AS check_in,
-			MAX(CASE WHEN al.punch = 1 THEN al.timestamp END) AS check_out
+			al.timestamp,
+			al.punch
 		FROM attendance_logs al
-		JOIN employees e ON e.emp_id = al.emp_id
+		JOIN employees e
+			ON e.emp_id = al.emp_id
 		WHERE al.device_name = 'Front Entry'
 	`
 
@@ -266,17 +267,22 @@ func (r *AttendanceLogRepoImpl) ListDailyAttendanceLog(ctx context.Context, filt
 		args = append(args, empID)
 	}
 	if fromDate != "" {
-		whereStr = append(whereStr, "DATE(al.timestamp) >= ?")
+		whereStr = append(
+			whereStr,
+			"DATE(al.timestamp) >= ?",
+		)
 		args = append(args, fromDate)
 	}
 	if toDate != "" {
-		whereStr = append(whereStr, "DATE(al.timestamp) <= ?")
+		whereStr = append(
+			whereStr,
+			"DATE(al.timestamp) <= ?",
+		)
 		args = append(args, toDate)
 	}
-	// Search by Employee ID or Employee Name
+
 	if filter.SearchString != "" {
 		search := "%" + strings.TrimSpace(filter.SearchString) + "%"
-
 		whereStr = append(
 			whereStr,
 			"(al.emp_id LIKE ? OR e.emp_name LIKE ?)",
@@ -285,18 +291,32 @@ func (r *AttendanceLogRepoImpl) ListDailyAttendanceLog(ctx context.Context, filt
 	}
 
 	if len(whereStr) > 0 {
-		baseQuery += " AND " + strings.Join(whereStr, " AND ")
+		query += " AND " + strings.Join(whereStr, " AND ")
 	}
 
-	baseQuery += `
-		GROUP BY al.emp_id, e.emp_name, DATE(al.timestamp)
-		ORDER BY log_date DESC
+	query += `
+		ORDER BY
+			al.emp_id ASC,
+			al.timestamp ASC
 	`
-	totalRecordQueryStatement :=
-		"SELECT COUNT(*) as totalRecords FROM (" + baseQuery + ") as result"
+
+	// Count records
+	countQuery := `
+		SELECT COUNT(*)
+		FROM attendance_logs al
+		JOIN employees e
+			ON e.emp_id = al.emp_id
+		WHERE al.device_name = 'Front Entry'
+	`
+
+	if len(whereStr) > 0 {
+		countQuery += " AND " + strings.Join(whereStr, " AND ")
+	}
 
 	var count int
-	err := r.db.Get(&count, totalRecordQueryStatement, args...)
+
+	err := r.db.Get(&count, countQuery, args...)
+
 	if err != nil {
 		log.Error(err.Error(), reqID)
 		return 0, nil, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
@@ -307,32 +327,22 @@ func (r *AttendanceLogRepoImpl) ListDailyAttendanceLog(ctx context.Context, filt
 	}
 	offset := commonConstants.NO_OF_RECORDS_PER_PAGE * (filter.Page - 1)
 
-	limitQueryStmt := baseQuery + " LIMIT ?,?"
+	query += `
+		LIMIT ?, ?
+	`
 
-	dataArgs := append(
-		append([]interface{}{}, args...),
-		offset,
-		commonConstants.NO_OF_RECORDS_PER_PAGE,
-	)
-	dailyLogsModel := []model.DailyAttendanceLog{}
+	dataArgs := append([]interface{}{}, args...)
 
-	err = r.db.Select(
-		&dailyLogsModel,
-		limitQueryStmt,
-		dataArgs...,
-	)
+	dataArgs = append(dataArgs, offset, commonConstants.NO_OF_RECORDS_PER_PAGE)
+
+	var attendanceLogs []model.DailyAttendanceLog
+
+	err = r.db.Select(&attendanceLogs, query, dataArgs...)
 	if err != nil {
 		log.Error(err.Error(), reqID)
 		return 0, nil, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
 	}
-	dailyLogsEntity := []entity.DailyAttendanceLog{}
-	for _, m := range dailyLogsModel {
-		dailyLogsEntity = append(
-			dailyLogsEntity,
-			converter.DailyAttendanceLogModelToEntity(m),
-		)
-	}
 
 	log.Info("core>repo>attendanceLog: ListDailyAttendanceLog completed", reqID)
-	return count, dailyLogsEntity, nil
+	return count, attendanceLogs, nil
 }

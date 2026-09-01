@@ -3,12 +3,15 @@ package service
 import (
 	"context"
 	"strconv"
+	"time"
 
 	"github.com/scalent.io/scalent-hrms/entity"
 	"github.com/scalent.io/scalent-hrms/entity/filters"
+	"github.com/scalent.io/scalent-hrms/model"
 	mailoraContext "github.com/scalent.io/scalent-hrms/pkg/context"
 	"github.com/scalent.io/scalent-hrms/pkg/errors"
 	"github.com/scalent.io/scalent-hrms/pkg/log"
+	"github.com/scalent.io/scalent-hrms/pkg/validation"
 )
 
 type AttendanceLogServiceImpl struct {
@@ -93,14 +96,121 @@ func (s *AttendanceLogServiceImpl) ListAttendanceLog(ctx context.Context, filter
 
 func (s *AttendanceLogServiceImpl) ListDailyAttendanceLog(ctx context.Context, filter *filters.ListFilter, empID, fromDate, toDate string) (int, []entity.DailyAttendanceLog, errors.Response) {
 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
-	log.Info("core>service>attendanceLog: daily attendance log list started", reqID)
 
-	totalRecords, dailyLogsEntity, errResp := s.attendanceLogRepo.ListDailyAttendanceLog(ctx, filter, empID, fromDate, toDate)
+	log.Info("core>service>attendanceLog: ListDailyAttendanceLog started", reqID)
+
+	count, attendanceLogs, errResp :=
+		s.attendanceLogRepo.ListDailyAttendanceLog(ctx, filter, empID, fromDate, toDate)
+
 	if errResp != nil {
 		log.Error(errResp.Error(), reqID)
 		return 0, nil, errResp
 	}
 
-	log.Info("core>service>attendanceLog: daily attendance log list completed", reqID)
-	return totalRecords, dailyLogsEntity, nil
+	dailyAttendance := s.CalculateDailyAttendance(attendanceLogs)
+
+	log.Info("core>service>attendanceLog: ListDailyAttendanceLog completed", reqID)
+	return count, dailyAttendance, nil
+}
+
+func (s *AttendanceLogServiceImpl) CalculateDailyAttendance(logs []model.DailyAttendanceLog) []entity.DailyAttendanceLog {
+
+	// If there are no attendance punches, return an empty result.
+	if len(logs) == 0 {
+		return []entity.DailyAttendanceLog{}
+	}
+
+	// Group attendance punches by employee and date. because the database returns individual punches, daily attendance record per employee.
+	grouped := make(map[string][]model.DailyAttendanceLog)
+
+	// Loop through all attendance punches received from the repository.
+	for _, log := range logs {
+
+		// Create a unique key using employee ID and attendance date.
+		key := log.EmpID + "_" + log.LogDate.Format("2006-01-02")
+
+		// Add the punch to the employee/date group.
+		grouped[key] = append(grouped[key], log)
+	}
+
+	// This will contain the final daily attendance records.
+	result := []entity.DailyAttendanceLog{}
+
+	// Process each employee/date group separately.
+	for _, employeeLogs := range grouped {
+
+		dailyLog := entity.DailyAttendanceLog{
+			EmpID:   employeeLogs[0].EmpID,
+			EmpName: employeeLogs[0].EmpName,
+			Date:    employeeLogs[0].LogDate,
+			Punches: []entity.AttendancePunch{},
+		}
+
+		// Stores the current Check-In time and When we find a Check-Out, we use this value to create a Check-In / Check-Out pair.
+		var checkIn *time.Time
+
+		// store the total working hours If an employee has multiple Check-In / Check-Out pairs, all completed durations are added together.
+		var totalWorkingDuration time.Duration
+
+		for _, log := range employeeLogs {
+
+			// Punch 0 means Check-In.
+			if log.Punch == 0 {
+
+				// Store the Check-In timestamp.
+				checkInTime := log.Timestamp
+				checkIn = &checkInTime
+				// Wait for the next Check-Out punch.
+				continue
+			}
+
+			// Punch 1 means Check-Out.
+			// We only process it when a Check-In already exists in db
+			if log.Punch == 1 && checkIn != nil {
+
+				// Store the Check-Out timestamp.
+				checkOutTime := log.Timestamp
+
+				// Create a Check-In / Check-Out pair.
+				dailyLog.Punches = append(
+					dailyLog.Punches,
+					entity.AttendancePunch{
+						CheckIn:  checkIn,
+						CheckOut: &checkOutTime,
+					},
+				)
+				totalWorkingDuration += checkOutTime.Sub(*checkIn)
+				// Reset Check-In so that the next Check-In can start a new attendance pair.
+				checkIn = nil
+			}
+		}
+
+		// If Check-In exists here, it means the employee has checked in but has not checked out yet.
+		if checkIn != nil {
+
+			// Add the incomplete Check-In to the punches list.
+			dailyLog.Punches = append(
+				dailyLog.Punches,
+				entity.AttendancePunch{
+					CheckIn:  checkIn,
+					CheckOut: nil,
+				},
+			)
+
+			// Employee has an incomplete attendance record.
+			dailyLog.Status = "INCOMPLETE"
+
+		} else if len(dailyLog.Punches) > 0 {
+			// At least one complete Check-In / Check-Out pair exists.
+			dailyLog.Status = "PRESENT"
+
+		} else {
+			// No valid attendance pair was found.
+			dailyLog.Status = "ABSENT"
+		}
+
+		dailyLog.WorkingHours = validation.FormatWorkingHours(totalWorkingDuration)
+		result = append(result, dailyLog)
+	}
+	return result
 }

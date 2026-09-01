@@ -14,12 +14,16 @@ type AttendanceLog struct {
 	CreatedAt       time.Time
 }
 
+type AttendancePunch struct {
+	CheckIn  *time.Time
+	CheckOut *time.Time
+}
+
 type DailyAttendanceLog struct {
 	EmpID        string
 	EmpName      string
 	Date         time.Time
-	CheckIn      *time.Time
-	CheckOut     *time.Time
+	Punches      []AttendancePunch
 	WorkingHours string
 	Status       string
 }

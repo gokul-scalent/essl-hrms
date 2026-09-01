@@ -55,27 +55,36 @@ func AttendanceLogEntityToAttendanceLogAPIModelResponse(e entity.AttendanceLog) 
 }
 
 func DailyAttendanceLogEntityToAttendanceLogAPIModelResponse(e entity.DailyAttendanceLog) coreAPIModel.DailyAttendanceLogResponse {
-	checkInStr := ""
-	if e.CheckIn != nil {
-		checkInStr = e.CheckIn.Format("15:04") //converting the utc date format into api response format eg: 2026-08-31 10:45:32 -> 10:45
+
+	punches := []coreAPIModel.AttendancePunchResponse{}
+
+	for _, punch := range e.Punches {
+
+		checkIn := ""
+		if punch.CheckIn != nil {
+			checkIn = punch.CheckIn.Format("15:04")
+		}
+		checkOut := ""
+		if punch.CheckOut != nil {
+			checkOut = punch.CheckOut.Format("15:04")
+		}
+		punches = append(
+			punches,
+			coreAPIModel.AttendancePunchResponse{
+				CheckIn:  checkIn,
+				CheckOut: checkOut,
+			},
+		)
 	}
 
-	checkOutStr := ""
-	if e.CheckOut != nil {
-		checkOutStr = e.CheckOut.Format("15:04")
-	}
-
-	r := coreAPIModel.DailyAttendanceLogResponse{
-
+	return coreAPIModel.DailyAttendanceLogResponse{
 		EmpID:        e.EmpID,
 		EmpName:      e.EmpName,
-		Date:         e.Date.Format("2006-01-02"), //converting the utc date format into api response format eg: 2026-08-31 10:45:32 ->  2026-08-31
-		CheckIn:      checkInStr,
-		CheckOut:     checkOutStr,
+		Date:         e.Date.Format("2006-01-02"),
+		Punches:      punches,
 		WorkingHours: e.WorkingHours,
 		Status:       e.Status,
 	}
-	return r
 }
 
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------
