@@ -30,9 +30,9 @@ var AttendanceLogModelMap = map[string]FieldStruct{
 }
 
 type DailyAttendanceLog struct {
-	EmpID     string    `db:"emp_id"`
-	EmpName   string    `db:"emp_name"`
-	LogDate   time.Time `db:"log_date"`
-	Timestamp time.Time `db:"timestamp"`
-	Punch     int       `db:"punch"`
+	EmpID     string        `db:"emp_id"`
+	EmpName   string        `db:"emp_name"`
+	LogDate   time.Time     `db:"log_date"`
+	Timestamp sql.NullTime  `db:"timestamp"`
+	Punch     sql.NullInt64 `db:"punch"`
 }

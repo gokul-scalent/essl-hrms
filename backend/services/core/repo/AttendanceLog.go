@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/scalent.io/scalent-hrms/entity"
@@ -246,77 +247,44 @@ func (r *AttendanceLogRepoImpl) ListDailyAttendanceLog(ctx context.Context, filt
 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
 	log.Info("core>repo>attendanceLog: ListDailyAttendanceLog started", reqID)
 
-	query := `
-		SELECT
-			al.emp_id,
-			e.emp_name,
-			DATE(al.timestamp) AS log_date,
-			al.timestamp,
-			al.punch
-		FROM attendance_logs al
-		JOIN employees e
-			ON e.emp_id = al.emp_id
-		WHERE al.device_name = 'Front Entry'
+	if fromDate == "" {
+		fromDate = time.Now().Format("2006-01-02")
+	}
+
+	if toDate == "" {
+		toDate = fromDate
+	}
+
+	countQuery := `
+		SELECT COUNT(*)
+		FROM employees e
 	`
 
-	whereStr := []string{}
-	args := []interface{}{}
+	countWhere := []string{}
+	countArgs := []interface{}{}
 
 	if empID != "" {
-		whereStr = append(whereStr, "al.emp_id = ?")
-		args = append(args, empID)
-	}
-	if fromDate != "" {
-		whereStr = append(
-			whereStr,
-			"DATE(al.timestamp) >= ?",
-		)
-		args = append(args, fromDate)
-	}
-	if toDate != "" {
-		whereStr = append(
-			whereStr,
-			"DATE(al.timestamp) <= ?",
-		)
-		args = append(args, toDate)
+		countWhere = append(countWhere, "e.emp_id = ?")
+		countArgs = append(countArgs, empID)
 	}
 
 	if filter.SearchString != "" {
 		search := "%" + strings.TrimSpace(filter.SearchString) + "%"
-		whereStr = append(
-			whereStr,
-			"(al.emp_id LIKE ? OR e.emp_name LIKE ?)",
+		countWhere = append(
+			countWhere,
+			"(e.emp_id LIKE ? OR e.emp_name LIKE ?)",
 		)
-		args = append(args, search, search)
+
+		countArgs = append(countArgs, search, search)
 	}
 
-	if len(whereStr) > 0 {
-		query += " AND " + strings.Join(whereStr, " AND ")
-	}
-
-	query += `
-		ORDER BY
-			al.emp_id ASC,
-			al.timestamp ASC
-	`
-
-	// Count records
-	countQuery := `
-		SELECT COUNT(*)
-		FROM attendance_logs al
-		JOIN employees e
-			ON e.emp_id = al.emp_id
-		WHERE al.device_name = 'Front Entry'
-	`
-
-	if len(whereStr) > 0 {
-		countQuery += " AND " + strings.Join(whereStr, " AND ")
+	if len(countWhere) > 0 {
+		countQuery += " WHERE " + strings.Join(countWhere, " AND ")
 	}
 
 	var count int
 
-	err := r.db.Get(&count, countQuery, args...)
-
+	err := r.db.Get(&count, countQuery, countArgs...)
 	if err != nil {
 		log.Error(err.Error(), reqID)
 		return 0, nil, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
@@ -326,18 +294,66 @@ func (r *AttendanceLogRepoImpl) ListDailyAttendanceLog(ctx context.Context, filt
 		filter.Page = 1
 	}
 	offset := commonConstants.NO_OF_RECORDS_PER_PAGE * (filter.Page - 1)
-
-	query += `
-		LIMIT ?, ?
+	query := `
+		SELECT
+			e.emp_id,
+			e.emp_name,
+			CAST(? AS DATE) AS log_date,
+			al.timestamp,
+			al.punch
+		FROM (
+			SELECT
+				emp_id,
+				emp_name
+			FROM employees
 	`
 
-	dataArgs := append([]interface{}{}, args...)
+	args := []interface{}{
+		fromDate,
+	}
 
-	dataArgs = append(dataArgs, offset, commonConstants.NO_OF_RECORDS_PER_PAGE)
+	employeeWhere := []string{}
+
+	if empID != "" {
+		employeeWhere = append(employeeWhere, "emp_id = ?")
+		args = append(args, empID)
+	}
+
+	if filter.SearchString != "" {
+		search := "%" + strings.TrimSpace(filter.SearchString) + "%"
+
+		employeeWhere = append(
+			employeeWhere,
+			"(emp_id LIKE ? OR emp_name LIKE ?)",
+		)
+
+		args = append(args, search, search)
+	}
+
+	if len(employeeWhere) > 0 {
+		query += " WHERE " + strings.Join(employeeWhere, " AND ")
+	}
+
+	query += `
+			ORDER BY emp_id ASC
+			LIMIT ?, ?
+		) e
+
+		LEFT JOIN attendance_logs al
+			ON al.emp_id = e.emp_id
+			AND DATE(al.timestamp) BETWEEN ? AND ?
+			AND al.device_name IN ('Front Entry', 'Back Entry')
+
+		ORDER BY
+			e.emp_id ASC,
+			al.timestamp ASC
+	`
+
+	args = append(args, offset, commonConstants.NO_OF_RECORDS_PER_PAGE, fromDate, toDate)
 
 	var attendanceLogs []model.DailyAttendanceLog
 
-	err = r.db.Select(&attendanceLogs, query, dataArgs...)
+	err = r.db.Select(&attendanceLogs, query, args...)
 	if err != nil {
 		log.Error(err.Error(), reqID)
 		return 0, nil, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)

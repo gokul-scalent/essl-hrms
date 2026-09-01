@@ -136,7 +136,7 @@ func (s *AttendanceLogServiceImpl) CalculateDailyAttendance(logs []model.DailyAt
 	// This will contain the final daily attendance records.
 	result := []entity.DailyAttendanceLog{}
 
-	// Process each employee/date group separately.
+	// Process each employee/date group.
 	for _, employeeLogs := range grouped {
 
 		dailyLog := entity.DailyAttendanceLog{
@@ -146,32 +146,48 @@ func (s *AttendanceLogServiceImpl) CalculateDailyAttendance(logs []model.DailyAt
 			Punches: []entity.AttendancePunch{},
 		}
 
-		// Stores the current Check-In time and When we find a Check-Out, we use this value to create a Check-In / Check-Out pair.
+		// Stores the current check-in time.
 		var checkIn *time.Time
 
-		// store the total working hours If an employee has multiple Check-In / Check-Out pairs, all completed durations are added together.
+		// Stores total working duration.
 		var totalWorkingDuration time.Duration
 
 		for _, log := range employeeLogs {
 
-			// Punch 0 means Check-In.
-			if log.Punch == 0 {
+			// Ignore record if punch is NULL.
+			if !log.Punch.Valid {
+				continue
+			}
 
-				// Store the Check-In timestamp.
-				checkInTime := log.Timestamp
+			// Ignore record if timestamp is NULL.
+			if !log.Timestamp.Valid {
+				continue
+			}
+
+			// Get actual values from sql.Null types.
+			punch := int(log.Punch.Int64)
+			timestamp := log.Timestamp.Time
+
+			// Punch 0 = Check-In.
+			if punch == 0 {
+
+				checkInTime := timestamp
 				checkIn = &checkInTime
 				// Wait for the next Check-Out punch.
 				continue
 			}
 
-			// Punch 1 means Check-Out.
-			// We only process it when a Check-In already exists in db
-			if log.Punch == 1 && checkIn != nil {
+			// Punch 1 = Check-Out.
+			if punch == 1 {
 
-				// Store the Check-Out timestamp.
-				checkOutTime := log.Timestamp
+				// Ignore checkout if there is no previous check-in.
+				if checkIn == nil {
+					continue
+				}
 
-				// Create a Check-In / Check-Out pair.
+				checkOutTime := timestamp
+
+				// Create Check-In / Check-Out pair.
 				dailyLog.Punches = append(
 					dailyLog.Punches,
 					entity.AttendancePunch{
@@ -179,8 +195,16 @@ func (s *AttendanceLogServiceImpl) CalculateDailyAttendance(logs []model.DailyAt
 						CheckOut: &checkOutTime,
 					},
 				)
-				totalWorkingDuration += checkOutTime.Sub(*checkIn)
-				// Reset Check-In so that the next Check-In can start a new attendance pair.
+
+				// Calculate working duration.
+				duration := checkOutTime.Sub(*checkIn)
+
+				// Add only valid positive duration.
+				if duration > 0 {
+					totalWorkingDuration += duration
+				}
+
+				// Reset check-in for next pair.
 				checkIn = nil
 			}
 		}

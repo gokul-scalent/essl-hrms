@@ -7,6 +7,7 @@ import {
   MenuItem,
   Select,
   TextField,
+  Tooltip,
 } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import { getDailyAttendanceLogList } from "actions/attendanceLog";
@@ -190,18 +191,18 @@ function DailyAttendanceLog() {
       width: "120px",
       Cell: (cell) => (cell.value ? formatDate(cell.value) : "-"),
     },
-    {
-      Header: "Check In",
-      accessor: "checkIn",
-      align: "left",
-      width: "130px",
-    },
-    {
-      Header: "Check Out",
-      accessor: "checkOut",
-      align: "left",
-      width: "130px",
-    },
+    // {
+    //   Header: "Check In",
+    //   accessor: "checkIn",
+    //   align: "left",
+    //   width: "130px",
+    // },
+    // {
+    //   Header: "Check Out",
+    //   accessor: "checkOut",
+    //   align: "left",
+    //   width: "130px",
+    // },
     {
       Header: "Working Hours",
       accessor: "workingHours",
@@ -214,6 +215,39 @@ function DailyAttendanceLog() {
       align: "left",
       width: "120px",
     },
+      {
+          Header: "Action",
+          accessor: "actions",
+          align: "center",
+          width: "120px",
+          disableSortBy: true,
+          Cell: (cell) => {
+            const rowData = cell.row.original;
+    
+            return (
+              <MDBox
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                gap={1}
+              >
+                <Tooltip title="View" arrow>
+                  <Icon
+                    sx={({ palette }) => ({
+                      cursor: "pointer",
+                      color: palette.secondary.main,
+                    })}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                  >
+                    <i className="fas fa-eye fa-sm" />
+                  </Icon>
+                </Tooltip>
+              </MDBox>
+            );
+          },
+        },
   ];
 
   return (
