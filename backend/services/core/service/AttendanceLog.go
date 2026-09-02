@@ -120,7 +120,7 @@ func (s *AttendanceLogServiceImpl) CalculateDailyAttendance(logs []model.DailyAt
 		return []entity.DailyAttendanceLog{}
 	}
 
-	// Group attendance punches by employee and date. because the database returns individual punches, daily attendance record per employee.
+	// Group attendance punches by employee and date.
 	grouped := make(map[string][]model.DailyAttendanceLog)
 
 	// Loop through all attendance punches received from the repository.
@@ -146,94 +146,205 @@ func (s *AttendanceLogServiceImpl) CalculateDailyAttendance(logs []model.DailyAt
 			Punches: []entity.AttendancePunch{},
 		}
 
-		// Stores the current check-in time.
-		var checkIn *time.Time
-
-		// Stores total working duration.
 		var totalWorkingDuration time.Duration
+		var previousPunch *model.DailyAttendanceLog
 
-		for _, log := range employeeLogs {
-
-			// Ignore record if punch is NULL.
-			if !log.Punch.Valid {
+		// Tracks whether the current/last check-out was already paired.
+		lastPunchPaired := false
+		for i := range employeeLogs {
+			current := employeeLogs[i]
+			// Ignore invalid punch.
+			if !current.Punch.Valid {
 				continue
 			}
-
-			// Ignore record if timestamp is NULL.
-			if !log.Timestamp.Valid {
+			// Ignore invalid timestamp.
+			if !current.Timestamp.Valid {
 				continue
 			}
+			punch := int(current.Punch.Int64)
+			timestamp := current.Timestamp.Time
 
-			// Get actual values from sql.Null types.
-			punch := int(log.Punch.Int64)
-			timestamp := log.Timestamp.Time
+			if previousPunch == nil {
 
-			// Punch 0 = Check-In.
-			if punch == 0 {
+				// CASE 1: Employee forgot the very first check-in. If the first punch is CHECK_OUT, assume CHECK_IN at 10:00 AM.
+				if punch == 1 {
 
-				checkInTime := timestamp
-				checkIn = &checkInTime
-				// Wait for the next Check-Out punch.
-				continue
-			}
+					checkIn := time.Date(timestamp.Year(), timestamp.Month(), timestamp.Day(), 10, 0, 0, 0, timestamp.Location())
+					checkOut := timestamp
 
-			// Punch 1 = Check-Out.
-			if punch == 1 {
+					// Only create the pair if the actual check-out happened after the assumed 10:00 AM check-in.
+					if checkOut.After(checkIn) {
+						dailyLog.Punches = append(
+							dailyLog.Punches,
+							entity.AttendancePunch{
+								CheckIn:  &checkIn,
+								CheckOut: &checkOut,
+							},
+						)
 
-				// Ignore checkout if there is no previous check-in.
-				if checkIn == nil {
+						duration := checkOut.Sub(checkIn)
+						if duration > 0 {
+							totalWorkingDuration += duration
+						}
+					}
+
+					previousPunch = nil
+					lastPunchPaired = true
+
 					continue
 				}
+				// First punch is CHECK_IN. Keep it unmatched until a CHECK_OUT is received.
+				if punch == 0 {
 
-				checkOutTime := timestamp
+					currentCopy := current
+					previousPunch = &currentCopy
+					lastPunchPaired = false
+				}
 
-				// Create Check-In / Check-Out pair.
+				continue
+			}
+
+			previousPunchType := int(previousPunch.Punch.Int64)
+			previousTime := previousPunch.Timestamp.Time
+
+			// CASE 2:normal check-in and check-out pair
+			if previousPunchType == 0 && punch == 1 {
+
+				checkIn := previousTime
+				checkOut := timestamp
+
 				dailyLog.Punches = append(
 					dailyLog.Punches,
 					entity.AttendancePunch{
-						CheckIn:  checkIn,
-						CheckOut: &checkOutTime,
+						CheckIn:  &checkIn,
+						CheckOut: &checkOut,
 					},
 				)
 
 				// Calculate working duration.
-				duration := checkOutTime.Sub(*checkIn)
-
-				// Add only valid positive duration.
+				duration := checkOut.Sub(checkIn)
 				if duration > 0 {
 					totalWorkingDuration += duration
 				}
+				// Both punches are paired.
+				previousPunch = nil
+				lastPunchPaired = true
+				continue
+			}
 
-				// Reset check-in for next pair.
-				checkIn = nil
+			// CASE 3: check-in -> check-in condition ----> First check-in has no check-out. Assume check-out = second check-in - 15 minutes.
+			if previousPunchType == 0 && punch == 0 {
+				checkIn := previousTime
+				checkOut := timestamp.Add(-15 * time.Minute)
+
+				if checkOut.After(checkIn) {
+
+					dailyLog.Punches = append(
+						dailyLog.Punches,
+						entity.AttendancePunch{
+							CheckIn:  &checkIn,
+							CheckOut: &checkOut,
+						},
+					)
+
+					duration := checkOut.Sub(checkIn)
+					if duration > 0 {
+						totalWorkingDuration += duration
+					}
+				}
+				// Current IN becomes the new unmatched punch.
+				currentCopy := current
+				previousPunch = &currentCopy
+				lastPunchPaired = false
+
+				continue
+			}
+
+			// CASE 4: check-out -> check-out Missing check-in before second check-out. Assume check-in = previous check-out + 15 minutes.
+			if previousPunchType == 1 && punch == 1 {
+
+				checkIn := previousTime.Add(15 * time.Minute)
+				checkOut := timestamp
+
+				if checkIn.Before(checkOut) {
+					dailyLog.Punches = append(
+						dailyLog.Punches,
+						entity.AttendancePunch{
+							CheckIn:  &checkIn,
+							CheckOut: &checkOut,
+						},
+					)
+
+					duration := checkOut.Sub(checkIn)
+
+					if duration > 0 {
+						totalWorkingDuration += duration
+					}
+					// Current OUT has been used as checkout.
+					lastPunchPaired = true
+				} else {
+					lastPunchPaired = false
+				}
+
+				// Current OUT becomes previous punch.
+				currentCopy := current
+				previousPunch = &currentCopy
+
+				continue
 			}
 		}
 
-		// If Check-In exists here, it means the employee has checked in but has not checked out yet.
-		if checkIn != nil {
+		if previousPunch != nil {
 
-			// Add the incomplete Check-In to the punches list.
-			dailyLog.Punches = append(
-				dailyLog.Punches,
-				entity.AttendancePunch{
-					CheckIn:  checkIn,
-					CheckOut: nil,
-				},
-			)
+			// Make sure punch and timestamp are valid.
+			if previousPunch.Punch.Valid && previousPunch.Timestamp.Valid {
 
-			// Employee has an incomplete attendance record.
-			dailyLog.Status = "INCOMPLETE"
+				punch := int(previousPunch.Punch.Int64)
+				timestamp := previousPunch.Timestamp.Time
 
-		} else if len(dailyLog.Punches) > 0 {
-			// At least one complete Check-In / Check-Out pair exists.
-			dailyLog.Status = "PRESENT"
+				// CASE 5: Last punch is check-in. Employee forgot the final check-out. Assume check-out = 7:00 PM.
+				if punch == 0 {
 
-		} else {
-			// No valid attendance pair was found.
-			dailyLog.Status = "ABSENT"
+					checkIn := timestamp
+
+					dailyLog.Punches = append(
+						dailyLog.Punches,
+						entity.AttendancePunch{
+							CheckIn:  &checkIn,
+							CheckOut: nil,
+						},
+					)
+
+					dailyLog.Status = "INCOMPLETE"
+				}
+
+				// Last punch is CHECK_OUT and was not paired. Keep CHECK_IN as NULL.
+				if punch == 1 && !lastPunchPaired {
+
+					checkOut := timestamp
+
+					dailyLog.Punches = append(
+						dailyLog.Punches,
+						entity.AttendancePunch{
+							CheckIn:  nil,
+							CheckOut: &checkOut,
+						},
+					)
+
+					dailyLog.Status = "INCOMPLETE"
+				}
+			}
 		}
+		if dailyLog.Status == "" {
 
+			if len(dailyLog.Punches) > 0 {
+				dailyLog.Status = "PRESENT"
+			} else {
+				dailyLog.Status = "ABSENT"
+			}
+		}
 		dailyLog.WorkingHours = validation.FormatWorkingHours(totalWorkingDuration)
+
 		result = append(result, dailyLog)
 	}
 	return result
