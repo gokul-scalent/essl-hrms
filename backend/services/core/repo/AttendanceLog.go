@@ -151,21 +151,33 @@ func (r *AttendanceLogRepoImpl) ListAttendanceLog(ctx context.Context, filter *f
 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
 	log.Info("core>repo>attendanceLog: ListAttendanceLog started", reqID)
 
-	queryStatement := "SELECT * FROM attendance_logs "
+	queryStatement := `
+		SELECT
+			attendance_logs.*,
+			e.emp_name
+		FROM attendance_logs
+		LEFT JOIN employees e
+			ON e.emp_id = attendance_logs.emp_id
+	`
 
 	modelmap := model.AttendanceLogModelMap
 
 	whereStr, args := filterPkg.CreateFilterStr(filter.Filters, modelmap)
 
-	// Search attendance logs by employee ID, device name
+	// Search attendance logs by employee ID, employee name, device name
 	if filter.SearchString != "" {
 		search := "%" + strings.TrimSpace(filter.SearchString) + "%"
 
 		whereStr = append(
 			whereStr,
-			"(attendance_logs.emp_id LIKE ? OR attendance_logs.device_name LIKE ?)",
+			`(
+				attendance_logs.emp_id LIKE ?
+				OR e.emp_name LIKE ?
+				OR attendance_logs.device_name LIKE ?
+			)`,
 		)
-		args = append(args, search, search)
+
+		args = append(args, search, search, search)
 	}
 
 	if len(whereStr) > 0 {
@@ -173,7 +185,7 @@ func (r *AttendanceLogRepoImpl) ListAttendanceLog(ctx context.Context, filter *f
 	}
 
 	// Latest attendance record first
-	queryStatement += " ORDER BY timestamp DESC"
+	queryStatement += " ORDER BY attendance_logs.timestamp DESC"
 
 	var limitQueryStmt string
 

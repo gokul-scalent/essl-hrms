@@ -45,6 +45,7 @@ func AttendanceLogModelToAttendanceLogEntity(m model.AttendanceLog) entity.Atten
 		ID:              m.ID,
 		UID:             m.UID,
 		EmpID:           m.EmpID,
+		EmpName:         m.EmpName,
 		Timestamp:       m.Timestamp,
 		Status:          m.Status,
 		Punch:           m.Punch,

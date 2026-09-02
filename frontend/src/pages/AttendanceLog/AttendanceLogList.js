@@ -183,6 +183,7 @@ function AttendanceLogList() {
         1,
       uID: item?.uID ?? "-",
       empID: item?.empID || "-",
+      empName: item?.empName || "-",
       timestamp: item?.timestamp || null,
       status: item?.status ?? "-",
       punch: item?.punch ?? "-",
@@ -202,6 +203,13 @@ function AttendanceLogList() {
       accessor: "empID",
       align: "left",
       width: "200px",
+    },
+    {
+      Header: "Employee Name",
+      accessor: "empName",
+      align: "left",
+      width: "200px",
+      Cell: (cell) => wrapCell(cell.value || "-", "200px"),
     },
     {
       Header: "Device Name",

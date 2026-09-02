@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"sort"
 	"strconv"
 	"time"
 
@@ -139,6 +140,13 @@ func (s *AttendanceLogServiceImpl) CalculateDailyAttendance(logs []model.DailyAt
 	// Process each employee/date group.
 	for _, employeeLogs := range grouped {
 
+		// Attendance punches must be processed chronologically.
+		sort.Slice(employeeLogs, func(i, j int) bool {
+			return employeeLogs[i].Timestamp.Time.Before(
+				employeeLogs[j].Timestamp.Time,
+			)
+		})
+
 		dailyLog := entity.DailyAttendanceLog{
 			EmpID:   employeeLogs[0].EmpID,
 			EmpName: employeeLogs[0].EmpName,
@@ -172,7 +180,6 @@ func (s *AttendanceLogServiceImpl) CalculateDailyAttendance(logs []model.DailyAt
 					checkIn := time.Date(timestamp.Year(), timestamp.Month(), timestamp.Day(), 10, 0, 0, 0, timestamp.Location())
 					checkOut := timestamp
 
-					// Only create the pair if the actual check-out happened after the assumed 10:00 AM check-in.
 					if checkOut.After(checkIn) {
 						dailyLog.Punches = append(
 							dailyLog.Punches,
@@ -195,12 +202,13 @@ func (s *AttendanceLogServiceImpl) CalculateDailyAttendance(logs []model.DailyAt
 				}
 				// First punch is CHECK_IN. Keep it unmatched until a CHECK_OUT is received.
 				if punch == 0 {
-
+					// First punch is CHECK_IN — keep the actual punch timestamp
+					// as the unmatched previous punch so it will be paired with
+					// the next CHECK_OUT. Do not override it with 10:00 AM.
 					currentCopy := current
 					previousPunch = &currentCopy
 					lastPunchPaired = false
 				}
-
 				continue
 			}
 

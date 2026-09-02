@@ -9,6 +9,7 @@ type AttendanceLog struct {
 	ID              int          `db:"id"`
 	UID             int          `db:"uid"`
 	EmpID           string       `db:"emp_id"`
+	EmpName         string       `db:"emp_name"`
 	Timestamp       time.Time    `db:"timestamp"`
 	Status          int          `db:"status"`
 	Punch           int          `db:"punch"`
@@ -21,6 +22,7 @@ var AttendanceLogModelMap = map[string]FieldStruct{
 	"ID":              {MySQLDatatype: "int", FieldName: "id"},
 	"UID":             {MySQLDatatype: "int", FieldName: "uid"},
 	"EmpID":           {MySQLDatatype: "varchar", FieldName: "emp_id"},
+	"EmpName":         {MySQLDatatype: "varchar", FieldName: "emp_name"},
 	"Timestamp":       {MySQLDatatype: "datetime", FieldName: "timestamp"},
 	"Status":          {MySQLDatatype: "int", FieldName: "status"},
 	"Punch":           {MySQLDatatype: "int", FieldName: "punch"},

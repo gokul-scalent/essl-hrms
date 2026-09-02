@@ -45,6 +45,7 @@ func AttendanceLogEntityToAttendanceLogAPIModelResponse(e entity.AttendanceLog) 
 		ID:              e.ID,
 		UID:             e.UID,
 		EmpID:           e.EmpID,
+		EmpName:         e.EmpName,
 		Timestamp:       e.Timestamp,
 		Status:          e.Status,
 		Punch:           e.Punch,

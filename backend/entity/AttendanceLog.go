@@ -6,6 +6,7 @@ type AttendanceLog struct {
 	ID              int
 	UID             int
 	EmpID           string
+	EmpName         string
 	Timestamp       time.Time
 	Status          int
 	Punch           int

@@ -50,6 +50,7 @@ type AttendanceLogResponse struct {
 	ID              int       `json:"ID"`
 	UID             int       `json:"uID"`
 	EmpID           string    `json:"empID"`
+	EmpName         string    `json:"empName"`
 	Timestamp       time.Time `json:"timestamp"`
 	Status          int       `json:"status"`
 	Punch           int       `json:"punch"`
