@@ -159,6 +159,8 @@ func (s *AttendanceLogServiceImpl) CalculateDailyAttendance(logs []model.DailyAt
 
 		// Tracks whether the current/last check-out was already paired.
 		lastPunchPaired := false
+		// Track whether we've seen the first valid punch for this day/group.
+		firstPunchSeen := false
 		for i := range employeeLogs {
 			current := employeeLogs[i]
 			// Ignore invalid punch.
@@ -174,8 +176,15 @@ func (s *AttendanceLogServiceImpl) CalculateDailyAttendance(logs []model.DailyAt
 
 			if previousPunch == nil {
 
-				// CASE 1: Employee forgot the very first check-in. If the first punch is CHECK_OUT, assume CHECK_IN at 10:00 AM.
-				if punch == 1 {
+				// Determine if this is the first valid punch processed for the group.
+				isFirst := false
+				if !firstPunchSeen {
+					isFirst = true
+					firstPunchSeen = true
+				}
+
+				// CASE 1: Employee forgot the very first check-in. Only appl this assumption if this is the first valid punch and it isa CHECK_OUT. Assume CHECK_IN at 10:00 AM.
+				if isFirst && punch == 1 {
 
 					checkIn := time.Date(timestamp.Year(), timestamp.Month(), timestamp.Day(), 10, 0, 0, 0, timestamp.Location())
 					checkOut := timestamp
@@ -202,9 +211,7 @@ func (s *AttendanceLogServiceImpl) CalculateDailyAttendance(logs []model.DailyAt
 				}
 				// First punch is CHECK_IN. Keep it unmatched until a CHECK_OUT is received.
 				if punch == 0 {
-					// First punch is CHECK_IN — keep the actual punch timestamp
-					// as the unmatched previous punch so it will be paired with
-					// the next CHECK_OUT. Do not override it with 10:00 AM.
+					// First punch is CHECK_IN — keep the actual punch timestamp as the unmatched previous punch so it will be paired with the next CHECK_OUT. Do not override it with 10:00 AM.
 					currentCopy := current
 					previousPunch = &currentCopy
 					lastPunchPaired = false
@@ -234,8 +241,10 @@ func (s *AttendanceLogServiceImpl) CalculateDailyAttendance(logs []model.DailyAt
 				if duration > 0 {
 					totalWorkingDuration += duration
 				}
-				// Both punches are paired.
-				previousPunch = nil
+				// Both punches are paired. Keep the current OUT as the previous
+				// punch so a subsequent OUT (without an intervening IN) can be detected as consecutive check-outs and handled (generate an assumed check-in).
+				currentCopy := current
+				previousPunch = &currentCopy
 				lastPunchPaired = true
 				continue
 			}
@@ -300,6 +309,15 @@ func (s *AttendanceLogServiceImpl) CalculateDailyAttendance(logs []model.DailyAt
 
 				continue
 			}
+
+			// CASE 5: previous is CHECK_OUT and current is CHECK_IN. This is a normal IN after an OUT — treat the current IN as the
+			// new unmatched previous punch so it can be paired with the next OUT.
+			if previousPunchType == 1 && punch == 0 {
+				currentCopy := current
+				previousPunch = &currentCopy
+				lastPunchPaired = false
+				continue
+			}
 		}
 
 		if previousPunch != nil {
@@ -352,7 +370,6 @@ func (s *AttendanceLogServiceImpl) CalculateDailyAttendance(logs []model.DailyAt
 			}
 		}
 		dailyLog.WorkingHours = validation.FormatWorkingHours(totalWorkingDuration)
-
 		result = append(result, dailyLog)
 	}
 	return result
