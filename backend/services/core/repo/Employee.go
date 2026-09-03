@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"database/sql"
 	"strconv"
 	"strings"
 	"time"
@@ -33,10 +34,45 @@ func (r *EmployeeRepoImpl) CreateEmployee(ctx context.Context, employee entity.E
 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
 	log.Info("core>repo>employee: CreateEmployee started", reqID)
 
-	query := "INSERT INTO employees (uid, emp_id, emp_name, privilege, password, group_id, card) VALUES(?, ?, ?, ?, ?, ?, ?)"
+	// Use a transaction so creating user, employee and assigning role are atomic
+	tx, err := r.db.Beginx()
+	if err != nil {
+		log.Error(err.Error(), reqID)
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
 
-	result, err := r.db.Exec(
-		query,
+	// rollback helper
+	rolledBack := true
+	defer func() {
+		if rolledBack {
+			_ = tx.Rollback()
+		}
+	}()
+
+	// If employee.UID is not provided, create a corresponding user
+	if employee.UID == 0 {
+		userQuery := "INSERT INTO users (email, password, is_password_set, status, session_token) VALUES(?, ?, ?, ?, ?)"
+		res, err := tx.Exec(userQuery, sql.NullString{String: "", Valid: false}, sql.NullString{String: "", Valid: false}, "NO", "ACTIVE", sql.NullString{String: "", Valid: false})
+		if err != nil {
+			log.Error(err.Error(), reqID)
+			if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
+				return 0, errors.ResponseBadRequestError("User already exists")
+			}
+			return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+		}
+
+		uid, err := res.LastInsertId()
+		if err != nil {
+			log.Error(err.Error(), reqID)
+			return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+		}
+		employee.UID = int(uid)
+	}
+
+	// Insert employee row
+	empQuery := "INSERT INTO employees (uid, emp_id, emp_name, privilege, password, group_id, card) VALUES(?, ?, ?, ?, ?, ?, ?)"
+	result, err := tx.Exec(
+		empQuery,
 		employee.UID,
 		employee.EmpID,
 		employee.EmpName,
@@ -45,13 +81,11 @@ func (r *EmployeeRepoImpl) CreateEmployee(ctx context.Context, employee entity.E
 		employee.GroupID,
 		employee.Card,
 	)
-
 	if err != nil {
 		log.Error(err.Error(), reqID)
 		if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
 			return 0, errors.ResponseBadRequestError("Employee ID already exists")
 		}
-
 		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
 	}
 
@@ -61,7 +95,25 @@ func (r *EmployeeRepoImpl) CreateEmployee(ctx context.Context, employee entity.E
 		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
 	}
 
-	log.Info("core>repo>employee: CreateEmployee completed & employee id is "+strconv.Itoa(int(employeeID)),reqID,)
+	// Assign default role (41) to the user. Ignore duplicate role assignment errors.
+	roleID := 41
+	_, err = tx.Exec("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", employee.UID, roleID)
+	if err != nil {
+		if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
+			// role already assigned; continue
+		} else {
+			log.Error(err.Error(), reqID)
+			return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		log.Error(err.Error(), reqID)
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+	rolledBack = false
+
+	log.Info("core>repo>employee: CreateEmployee completed & employee id is "+strconv.Itoa(int(employeeID)), reqID)
 	return int(employeeID), nil
 }
 

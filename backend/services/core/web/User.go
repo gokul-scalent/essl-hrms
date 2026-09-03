@@ -71,6 +71,13 @@ func (h CoreHandlerRegistry) PartialUpdateUserHandler(c *gin.Context) {
 	userEntity := converter.UpdateUserAPIRequestToUserEntity(userRequest)
 	userEntity.ID = userID
 
+	// allow only admin to update users
+	sessionEntity, errSess := context.GetSessionFromContext(c.Request.Context())
+	if errSess != nil || sessionEntity.Role != "ADMIN" {
+		httpUtils.ErrorResponse(c, errors.ResponseUnauthorizedError("access denied"), nil)
+		return
+	}
+
 	errResp := h.Options.UserService.PartialUpdateUser(c.Request.Context(), userEntity)
 	if errResp != nil {
 		log.Error(errResp.Error(), reqID)
@@ -108,6 +115,13 @@ func (h CoreHandlerRegistry) UpdateUserHandler(c *gin.Context) {
 
 	userEntity := converter.UserAPIToUserEntity(userRequest)
 	userEntity.ID = userID
+
+	// allow only admin to update users
+	sessionEntity, errSess := context.GetSessionFromContext(c.Request.Context())
+	if errSess != nil || sessionEntity.Role != "ADMIN" {
+		httpUtils.ErrorResponse(c, errors.ResponseUnauthorizedError("access denied"), nil)
+		return
+	}
 
 	errResp := h.Options.UserService.UpdateUser(c.Request.Context(), userEntity)
 	if errResp != nil {

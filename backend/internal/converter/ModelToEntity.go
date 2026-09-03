@@ -18,6 +18,12 @@ func UserModelToUserEntity(m model.User) entity.User {
 		CreatedAt:     m.CreatedAt.Time,
 		UpdatedAt:     m.UpdatedAt.Time,
 		DeletedAt:     m.DeletedAt.Time,
+		Role: entity.Role{
+			ID:     int(m.RoleID.Int64),
+			Name:   m.RoleName.String,
+			Code:   m.RoleCode.String,
+			Status: m.RoleStatus.String,
+		},
 	}
 	return e
 }

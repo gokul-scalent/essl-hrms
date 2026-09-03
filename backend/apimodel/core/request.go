@@ -19,6 +19,7 @@ type User struct {
 	Status       string     `json:"status" binding:"omitempty"`
 	LastLoginAt  *time.Time `json:"lastLoginAt" binding:"omitempty"`
 	SessionToken string     `json:"sessionToken" binding:"omitempty"`
+	RoleID       int        `json:"roleID" binding:"required"`
 }
 
 type UpdateUserRequest struct {
@@ -27,6 +28,7 @@ type UpdateUserRequest struct {
 	Status       string    `json:"status" binding:"omitempty"`
 	LastLoginAt  time.Time `json:"lastLoginAt" binding:"omitempty"`
 	SessionToken string    `json:"sessionToken" binding:"omitempty"`
+	RoleID       int       `json:"roleID" binding:"omitempty"`
 }
 type ChangePasswordRequest struct {
 	OldPassword     string `json:"oldPassword" binding:"required,min=8"`
@@ -35,7 +37,7 @@ type ChangePasswordRequest struct {
 }
 
 type Employee struct {
-	UID       int    `json:"uID" binding:"required"`
+	UID       int    `json:"uID" binding:"omitempty"`
 	EmpID     string `json:"empID" binding:"required"`
 	EmpName   string `json:"empName" binding:"required"`
 	Privilege int    `json:"privilege" binding:"omitempty"`

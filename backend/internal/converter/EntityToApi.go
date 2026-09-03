@@ -20,6 +20,12 @@ func UserEntityToUserAPIModelResponse(e entity.User) coreAPIModel.UserResponse {
 		Status:        e.Status,
 		IsPasswordSet: e.IsPasswordSet,
 		LastLoginAt:   lastLoginAt,
+		Role: coreAPIModel.RoleResponse{
+			ID:     e.Role.ID,
+			Name:   e.Role.Name,
+			Code:   e.Role.Code,
+			Status: e.Role.Status,
+		},
 	}
 	return list
 }

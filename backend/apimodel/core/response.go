@@ -10,18 +10,18 @@ type LoginResponse struct {
 }
 
 type UserResponse struct {
-	ID            int        `json:"ID"`
-	Email         string     `json:"email"`
-	Status        string     `json:"status"`
-	IsPasswordSet string     `json:"isPasswordSet,omitempty"`
-	LastLoginAt   *time.Time `json:"lastLoginAt"`
+	ID            int          `json:"ID"`
+	Email         string       `json:"email"`
+	Status        string       `json:"status"`
+	IsPasswordSet string       `json:"isPasswordSet,omitempty"`
+	LastLoginAt   *time.Time   `json:"lastLoginAt"`
+	Role          RoleResponse `json:"role,omitempty"`
 }
 
 type UserListResponse struct {
 	TotalRecords       int            `json:"totalRecords"`
 	NoOfRecordsPerPage int            `json:"noOfRecordsPerPage"`
 	User               []UserResponse `json:"user"`
-	Roles              RoleResponse   `json:"roles"`
 }
 type RoleResponse struct {
 	ID     int    `json:"ID"`
@@ -36,8 +36,9 @@ type EmployeeResponse struct {
 	EmpName   string `json:"empName"`
 	Privilege int    `json:"privilege"`
 	// Password  string `json:"password"`
-	GroupID string `json:"groupID"`
-	Card    string `json:"card"`
+	GroupID string       `json:"groupID"`
+	Card    string       `json:"card"`
+	Role    RoleResponse `json:"role"`
 }
 
 type EmployeeListResponse struct {
