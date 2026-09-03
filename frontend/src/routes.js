@@ -44,7 +44,7 @@ import SignIn from "pages/authentication/sign-in";
 import UsersListing from "pages/Users/UsersListing";
 import EmployeeList from "pages/Employee/EmployeeList";
 import AttendanceLogList from "pages/AttendanceLog/AttendanceLogList";
-import DailyAttendanceLog from "pages/DailyAttendanceLog/DailyAttendanceLog";
+// import DailyAttendanceLog from "pages/DailyAttendanceLog/DailyAttendanceLog";
 
 const routes = [
   {
