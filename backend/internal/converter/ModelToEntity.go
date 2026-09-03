@@ -24,6 +24,8 @@ func UserModelToUserEntity(m model.User) entity.User {
 			Code:   m.RoleCode.String,
 			Status: m.RoleStatus.String,
 		},
+		EmpID:   m.EmpID.String,
+		EmpName: m.EmpName.String,
 	}
 	return e
 }

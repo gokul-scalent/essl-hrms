@@ -26,6 +26,8 @@ func UserEntityToUserAPIModelResponse(e entity.User) coreAPIModel.UserResponse {
 			Code:   e.Role.Code,
 			Status: e.Role.Status,
 		},
+		EmpID:   e.EmpID,
+		EmpName: e.EmpName,
 	}
 	return list
 }

@@ -11,6 +11,8 @@ type User struct {
 	Status        string
 	LastLoginAt   time.Time
 	SessionToken  string
+	EmpID         string
+	EmpName       string
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	DeletedAt     time.Time

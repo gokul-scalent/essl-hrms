@@ -14,6 +14,8 @@ type User struct {
 	RoleName      sql.NullString `db:"role_name"`
 	RoleCode      sql.NullString `db:"role_code"`
 	RoleStatus    sql.NullString `db:"role_status"`
+	EmpID         sql.NullString `db:"emp_id"`
+	EmpName       sql.NullString `db:"emp_name"`
 	LastLoginAt   sql.NullTime   `db:"last_login_at"`
 	SessionToken  sql.NullString `db:"session_token"`
 	CreatedAt     sql.NullTime   `db:"created_at"`
@@ -36,4 +38,6 @@ var UserModelMap = map[string]FieldStruct{
 	"RoleName":      {MySQLDatatype: "varchar", FieldName: "r.name"},
 	"RoleCode":      {MySQLDatatype: "varchar", FieldName: "r.code"},
 	"RoleStatus":    {MySQLDatatype: "enum", FieldName: "r.status"},
+	"EmpID":         {MySQLDatatype: "varchar", FieldName: "e.emp_id"},
+	"EmpName":       {MySQLDatatype: "varchar", FieldName: "e.emp_name"},
 }

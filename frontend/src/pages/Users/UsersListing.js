@@ -126,6 +126,7 @@ function UsersListing() {
         index +
         1,
       email: item?.email || "-",
+      empName : item?.empName || "-",
       role: item?.role || null,
       status: item?.status || "ACTIVE",
       lastLoginAt: item?.lastLoginAt || null,
@@ -161,6 +162,13 @@ function UsersListing() {
     {
       Header: "Email",
       accessor: "email",
+      align: "left",
+      width: "200px",
+      Cell: (cell) => wrapCell(cell.value || "-", "200px"),
+    },
+    {
+      Header: "Employee Name",
+      accessor: "empName",
       align: "left",
       width: "200px",
       Cell: (cell) => wrapCell(cell.value || "-", "200px"),

@@ -145,11 +145,16 @@ func (r *UserRepoImpl) GetUserbyID(ctx context.Context, userID int) (entity.User
 
 	query := `
 		SELECT
-			id, email, password, is_password_set, status,
-			last_login_at, session_token, created_at, updated_at, deleted_at
-		FROM users
-		WHERE id = ?
-		AND deleted_at IS NULL
+			u.id, u.email, u.password, u.is_password_set, u.status,
+			ur.role_id as role_id, r.name as role_name, r.code as role_code, r.status as role_status,
+			e.emp_id as emp_id, e.emp_name as emp_name,
+			u.last_login_at, u.session_token, u.created_at, u.updated_at, u.deleted_at
+		FROM users u
+		LEFT JOIN user_roles ur ON ur.user_id = u.id AND ur.deleted_at IS NULL
+		LEFT JOIN roles r ON r.id = ur.role_id
+		LEFT JOIN employees e ON e.uid = u.id AND e.deleted_at IS NULL
+		WHERE u.id = ?
+		AND u.deleted_at IS NULL
 	`
 
 	userModel := model.User{}
@@ -173,9 +178,14 @@ func (r *UserRepoImpl) ListUser(ctx context.Context, filter *filters.ListFilter)
 
 	queryStatement := `
 		SELECT
-			id, email, password, is_password_set, status,
-			last_login_at, session_token, created_at, updated_at, deleted_at
-		FROM users
+			u.id, u.email, u.password, u.is_password_set, u.status,
+			ur.role_id as role_id, r.name as role_name, r.code as role_code, r.status as role_status,
+			e.emp_id as emp_id, e.emp_name as emp_name,
+			u.last_login_at, u.session_token, u.created_at, u.updated_at, u.deleted_at
+		FROM users u
+		LEFT JOIN user_roles ur ON ur.user_id = u.id AND ur.deleted_at IS NULL
+		LEFT JOIN roles r ON r.id = ur.role_id
+		LEFT JOIN employees e ON e.uid = u.id AND e.deleted_at IS NULL
 	`
 
 	modelmap := model.UserModelMap
@@ -185,12 +195,12 @@ func (r *UserRepoImpl) ListUser(ctx context.Context, filter *filters.ListFilter)
 	// Search string
 	if filter.SearchString != "" {
 		search := "%" + strings.TrimSpace(filter.SearchString) + "%"
-		whereStr = append(whereStr, "users.email LIKE ?")
+		whereStr = append(whereStr, "u.email LIKE ?")
 		args = append(args, search)
 	}
 
 	// Soft delete
-	whereStr = append(whereStr, "users.deleted_at IS NULL")
+	whereStr = append(whereStr, "u.deleted_at IS NULL")
 
 	whereString := strings.Join(whereStr, " AND ")
 	whereString = "WHERE " + whereString

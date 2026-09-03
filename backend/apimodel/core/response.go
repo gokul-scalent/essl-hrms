@@ -16,6 +16,8 @@ type UserResponse struct {
 	IsPasswordSet string       `json:"isPasswordSet,omitempty"`
 	LastLoginAt   *time.Time   `json:"lastLoginAt"`
 	Role          RoleResponse `json:"role,omitempty"`
+	EmpID         string       `json:"empID,omitempty"`
+	EmpName       string       `json:"empName,omitempty"`
 }
 
 type UserListResponse struct {
