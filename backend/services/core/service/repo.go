@@ -22,6 +22,7 @@ type HomeRepo interface {
 type UserRepo interface {
 	CreateUser(ctx context.Context, user entity.User) (int, errors.Response)
 	PartialUpdateUser(ctx context.Context, user entity.User) errors.Response
+	UpdateEmployeeName(ctx context.Context, userID int, empName string) errors.Response
 	UpdateUser(ctx context.Context, user entity.User) errors.Response
 	DeleteUser(ctx context.Context, userID int) errors.Response
 	GetUserbyID(ctx context.Context, userID int) (entity.User, errors.Response)

@@ -164,7 +164,17 @@ func (s *UserServiceImpl) PartialUpdateUser(ctx context.Context, user entity.Use
 		return errResp
 	}
 
-	log.Info("core>service>user: update user completed for user id "+strconv.Itoa(user.ID), reqID)
+	// Update employee name if provided
+	if user.EmpName != "" {
+		errResp = s.userRepo.UpdateEmployeeName(ctx, user.ID, user.EmpName)
+
+		if errResp != nil {
+			log.Error(errResp.Error(), reqID)
+			return errResp
+		}
+	}
+
+	log.Info("core>service>user: partial update user completed for user id "+strconv.Itoa(user.ID), reqID)
 	return nil
 }
 
@@ -185,6 +195,16 @@ func (s *UserServiceImpl) UpdateUser(ctx context.Context, user entity.User) erro
 	if errResp != nil {
 		log.Error(errResp.Error(), reqID)
 		return errResp
+	}
+
+	// Update employees.emp_name
+	if user.EmpName != "" {
+		errResp = s.userRepo.UpdateEmployeeName(ctx, user.ID, user.EmpName)
+
+		if errResp != nil {
+			log.Error(errResp.Error(), reqID)
+			return errResp
+		}
 	}
 
 	log.Info("core>service>user: update user completed for user id "+strconv.Itoa(user.ID), reqID)

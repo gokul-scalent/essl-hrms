@@ -305,3 +305,22 @@ func (r *UserRepoImpl) ChangePassword(ctx context.Context, password string, user
 	log.Info("core>repo>user: ChangePassword completed for user id "+strconv.Itoa(userID), reqID)
 	return nil
 }
+
+func (r *UserRepoImpl) UpdateEmployeeName(ctx context.Context, userID int, empName string) errors.Response {
+	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
+
+	query := `
+		UPDATE employees
+		SET emp_name = ?
+		WHERE uid = ?
+		AND deleted_at IS NULL
+	`
+
+	_, err := r.db.Exec(query, empName, userID)
+
+	if err != nil {
+		log.Error("failed to update employee name: "+err.Error(), reqID)
+		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+	return nil
+}
