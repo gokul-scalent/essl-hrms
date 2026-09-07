@@ -215,6 +215,26 @@ function UsersListing() {
             justifyContent="center"
             gap={1}
           >
+            <Tooltip title="Send Mail" arrow>
+              <Icon
+                sx={({ palette }) => ({
+                  cursor: "pointer",
+                  color: palette.deepBlue.main,
+                })}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // handleSendMail(rowData);
+                }}
+              >
+                <i class="fa-solid fa-paper-plane"></i>
+              </Icon>
+            </Tooltip>
+
+            <MDTypography variant="caption" mx={0.5}>
+              |
+            </MDTypography>
+
+            {/* Edit */}
             <Tooltip title="Edit" arrow>
               <Icon
                 sx={({ palette }) => ({
@@ -234,6 +254,7 @@ function UsersListing() {
               |
             </MDTypography>
 
+            {/* Delete */}
             <Tooltip title="Delete" arrow>
               <Icon
                 color="error"
@@ -828,7 +849,7 @@ function UsersListing() {
                       }
                       error={!!formData.empName.error}
                       fullWidth
-                      inputProps={{ maxLength: 100 }}
+                      inputProps={{ maxLength: 255 }}
                     />
 
                     {formData.empName.error && (
