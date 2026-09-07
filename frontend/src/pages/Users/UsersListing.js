@@ -31,17 +31,17 @@ import {
   addUser,
   getUserDetailById,
   deleteUser,
+  sendMail,
 } from "actions/users";
 import { userList } from "constants/users";
 import CenterPopup from "components/CommonComponent/CenterPopup";
 import RequiredLabel from "components/CommonComponent/RequiredLabel";
 import MDBadge from "components/MDBadge";
-import { REGEX } from "components/common/constant";
+import { REGEX ,STATUS} from "components/common/constant";
 import { useNotify } from "components/CommonComponent/NotificationProvider";
 import { showAlert } from "components/CommonComponent/ShowAlert";
 import { selectSx } from "components/CommonComponent/CommonFunction";
 import { ArrowDropDown } from "@mui/icons-material";
-import { STATUS } from "components/common/constant";
 
 const initialFields = {
   id: "",
@@ -223,7 +223,7 @@ function UsersListing() {
                 })}
                 onClick={(e) => {
                   e.stopPropagation();
-                  // handleSendMail(rowData);
+                  handleSendMail(rowData);
                 }}
               >
                 <i class="fa-solid fa-paper-plane"></i>
@@ -583,6 +583,55 @@ function UsersListing() {
       onCancel: () => {},
     });
   };
+
+const handleSendMail = (row) => {
+  showAlert({
+    title: "Send Login Credentials?",
+    message: `A new temporary password will be generated and sent to "${row.email}". Do you want to continue?`,
+    type: "warning",
+    showCancel: true,
+    confirmText: "Yes, send mail",
+    cancelText: "Cancel",
+
+    onConfirm: async () => {
+      try {
+        setListState((prev) => ({
+          ...prev,
+          showLoaderOnClick: true,
+        }));
+
+        const res = await sendMail(row.id);
+
+        if (res?.code === 200) {
+          notify(
+            res?.message || "Login credentials sent successfully",
+            "success",
+          );
+        } else {
+          const message = Array.isArray(res?.message)
+            ? res.message
+                .map((err) => (err?.Msg ? err.Msg : JSON.stringify(err)))
+                .join(", ")
+            : res?.message || "Failed to send login credentials";
+
+          notify(message, "error");
+        }
+      } catch (error) {
+        notify(
+          error?.message || "Failed to send login credentials",
+          "error",
+        );
+      } finally {
+        setListState((prev) => ({
+          ...prev,
+          showLoaderOnClick: false,
+        }));
+      }
+    },
+
+    onCancel: () => {},
+  });
+};
 
   return (
     <>

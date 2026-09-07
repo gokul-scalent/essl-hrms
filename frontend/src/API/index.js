@@ -71,3 +71,6 @@ export const get_attendance_log_list = (pageNum, filtersJSON, searchString) =>
       ...(searchString ? { searchString } : {}),
     },
   })
+
+  //send mail
+  export const send_mail = (id) => API.post(`${USERS}${id}/send-mail`)

@@ -49,3 +49,12 @@ export const deleteUser = async (id) => {
     return error?.response?.data || error;
   }
 };
+
+export const sendMail = async (id) =>{
+  try{
+    const res = await API.send_mail(id);
+    return res?.data;
+  }catch(error){
+    return error?.response?.data || error;
+  }
+}
