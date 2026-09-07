@@ -50,6 +50,11 @@ const initialFields = {
     original: "",
     error: "",
   },
+  empName: {
+    value: "",
+    original: "",
+    error: "",
+  },
   status: {
     value: "ACTIVE",
     original: "ACTIVE",
@@ -126,7 +131,7 @@ function UsersListing() {
         index +
         1,
       email: item?.email || "-",
-      empName : item?.empName || "-",
+      empName: item?.empName || "-",
       role: item?.role || null,
       status: item?.status || "ACTIVE",
       lastLoginAt: item?.lastLoginAt || null,
@@ -285,6 +290,13 @@ function UsersListing() {
     const trimmedValue = typeof value === "string" ? value.trim() : value;
 
     switch (name) {
+      case "empName":
+        if (!trimmedValue) {
+          return "Employee name is required.";
+        }
+
+        return "";
+
       case "email":
         if (!trimmedValue) {
           return "Email is required.";
@@ -447,6 +459,11 @@ function UsersListing() {
         original: "",
         error: "",
       },
+      empName: {
+        value: "",
+        original: "",
+        error: "",
+      },
       status: {
         value: "ACTIVE",
         original: "ACTIVE",
@@ -474,6 +491,11 @@ function UsersListing() {
           email: {
             value: data?.email || "",
             original: data?.email || "",
+            error: "",
+          },
+          empName: {
+            value: data?.empName || "",
+            original: data?.empName || "",
             error: "",
           },
           status: {
@@ -786,6 +808,32 @@ function UsersListing() {
                     {formData.email.error && (
                       <MDTypography variant="caption" color="error">
                         {formData.email.error}
+                      </MDTypography>
+                    )}
+                  </Grid>
+                  <Grid item xs={12}>
+                    <RequiredLabel required>Employee Name</RequiredLabel>
+
+                    <MDInput
+                      variant="outlined"
+                      type="text"
+                      name="empName"
+                      placeholder="Enter employee name"
+                      value={formData.empName.value}
+                      onChange={(e) =>
+                        handleChange(e.target.name, e.target.value)
+                      }
+                      onBlur={(e) =>
+                        handleOnBlur(e.target.name, e.target.value)
+                      }
+                      error={!!formData.empName.error}
+                      fullWidth
+                      inputProps={{ maxLength: 100 }}
+                    />
+
+                    {formData.empName.error && (
+                      <MDTypography variant="caption" color="error">
+                        {formData.empName.error}
                       </MDTypography>
                     )}
                   </Grid>
