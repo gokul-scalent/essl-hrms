@@ -61,8 +61,8 @@ func (r *UserRepoImpl) PartialUpdateUser(ctx context.Context, user entity.User) 
 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
 	log.Info("core>repo>user:  PartialUpdateUser started for user id "+strconv.Itoa(user.ID), reqID)
 
-	columns := []string{}
-	args := []interface{}{}
+	var columns []string
+	var args []interface{}
 
 	if user.Email != "" {
 		columns = append(columns, "email=?")
@@ -101,19 +101,24 @@ func (r *UserRepoImpl) PartialUpdateUser(ctx context.Context, user entity.User) 
 		log.Info("core>repo>user: No fields to update for user id "+strconv.Itoa(user.ID), reqID)
 		return nil
 	}
-	// User ID
+
+	query := `
+		UPDATE users
+		SET ` + strings.Join(columns, ", ") + `
+		WHERE id = ?
+		AND deleted_at IS NULL
+	`
+
 	args = append(args, user.ID)
 
-	columnStr := strings.Join(columns, ", ")
+	_, err := r.db.Exec(query, args...)
+	if err != nil {
+		log.Error(err.Error(), reqID) // Duplicate email
+		if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
 
-	if columnStr != "" {
-		query := "UPDATE users SET " + columnStr + " WHERE  id=?  AND users.deleted_at IS NULL"
-
-		_, err := r.db.Exec(query, args...)
-		if err != nil {
-			log.Error(err.Error(), reqID)
-			return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+			return errors.ResponseBadRequestError("Email already exists")
 		}
+		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
 	}
 
 	log.Info("core>repo>user: PartialUpdateUser completed for user id "+strconv.Itoa(user.ID), reqID)

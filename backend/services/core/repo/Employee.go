@@ -68,7 +68,7 @@ func (r *EmployeeRepoImpl) CreateEmployee(ctx context.Context, employee entity.E
 		nil,              // email
 		nil,              // password
 		"NO",             // is_password_set
-		"ACTIVE",         // status
+		"INACTIVE",       // status
 		employee.EmpName, // empname
 	)
 
