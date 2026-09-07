@@ -19,6 +19,7 @@ type CoreHandlerRegistryOptions struct {
 	LoginService         coreService.LoginService
 	EmployeeService      coreService.EmployeeService
 	AttendanceLogService coreService.AttendanceLogService
+	RoleService          coreService.RoleService
 }
 
 type CoreHandlerRegistry struct {
@@ -57,6 +58,11 @@ func (h CoreHandlerRegistry) registerRoutes() (*gin.Engine, error) {
 	coreRouter.GET("/home", h.HomeHandler)
 
 	coreRouter.Use(h.Options.Middleware.Access())
+
+	roleRouter := coreRouter.Group("/role")
+	roleRouter.GET("/list", h.GetRolesHandler)
+	roleRouter.GET("/:id", h.GetRoleByIDHandler)
+
 	coreRouter.POST("/logout", h.LogOutHandler)
 
 	userRouter := coreRouter.Group("/user")

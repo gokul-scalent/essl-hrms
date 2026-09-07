@@ -45,4 +45,9 @@ type AttendanceLogService interface {
 	ListAttendanceLog(ctx context.Context, filter *filters.ListFilter) (int, []entity.AttendanceLog, errors.Response)
 }
 
+type RepoService interface {
+	GetRoles(ctx context.Context) ([]entity.Role, errors.Response)
+	GetRoleByID(ctx context.Context, id int) (*entity.Role, errors.Response)
+}
+
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------

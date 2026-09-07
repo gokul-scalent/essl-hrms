@@ -62,4 +62,13 @@ func AttendanceLogEntityToAttendanceLogAPIModelResponse(e entity.AttendanceLog) 
 	return list
 }
 
+func RoleEntityToRoleAPIModelResponse(e entity.Role) coreAPIModel.RoleResponse {
+	return coreAPIModel.RoleResponse{
+		ID:     e.ID,
+		Name:   e.Name,
+		Code:   e.Code,
+		Status: e.Status,
+	}
+}
+
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------

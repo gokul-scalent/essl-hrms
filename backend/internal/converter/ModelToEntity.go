@@ -1,6 +1,8 @@
 package converter
 
 import (
+	"time"
+
 	"github.com/scalent.io/scalent-hrms/entity"
 	"github.com/scalent.io/scalent-hrms/model"
 )
@@ -61,6 +63,28 @@ func AttendanceLogModelToAttendanceLogEntity(m model.AttendanceLog) entity.Atten
 		CreatedAt:       m.CreatedAt.Time,
 	}
 	return e
+}
+
+func RoleModelToRoleEntity(m model.Role) entity.Role {
+	var updatedAt time.Time
+	var deletedAt *time.Time
+
+	if m.UpdatedAt.Valid {
+		updatedAt = m.UpdatedAt.Time
+	}
+	if m.DeletedAt.Valid {
+		deletedAt = &m.DeletedAt.Time
+	}
+
+	return entity.Role{
+		ID:        m.ID,
+		Name:      m.Name,
+		Code:      m.Code,
+		Status:    m.Status,
+		CreatedAt: m.CreatedAt,
+		UpdatedAt: updatedAt,
+		DeletedAt: deletedAt,
+	}
 }
 
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------

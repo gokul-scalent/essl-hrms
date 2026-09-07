@@ -52,4 +52,9 @@ type AttendanceLogRepo interface {
 	GetAttendanceLogDetails(ctx context.Context, selectColumns []string, table string, whereColumn []string, args []interface{}) (*entity.AttendanceLog, errors.Response)
 }
 
+type RoleRepo interface {
+	GetRoles(ctx context.Context) ([]entity.Role, errors.Response)
+	GetRoleByID(ctx context.Context, id int) (*entity.Role, errors.Response)
+}
+
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------

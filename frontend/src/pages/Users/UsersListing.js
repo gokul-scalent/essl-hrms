@@ -675,7 +675,7 @@ const handleSendMail = (row) => {
                     <Grid item xs={12} sm={6} md={4} lg={2}>
                       <TextField
                         fullWidth
-                        placeholder="Search by name "
+                        placeholder="Search by email or name"
                         size="small"
                         value={filterState.searchString}
                         onChange={(e) =>
