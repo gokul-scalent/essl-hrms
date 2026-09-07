@@ -69,6 +69,13 @@ func (r *UserRepoImpl) PartialUpdateUser(ctx context.Context, user entity.User) 
 		args = append(args, user.Email)
 	}
 
+	// Update employee/user name
+	if user.EmpName != "" {
+		columns = append(columns, "empname=?")
+		args = append(args, user.EmpName)
+	}
+
+	// Update last login
 	if !user.LastLoginAt.IsZero() {
 		columns = append(columns, "last_login_at=?")
 		args = append(args, user.LastLoginAt)
@@ -89,6 +96,12 @@ func (r *UserRepoImpl) PartialUpdateUser(ctx context.Context, user entity.User) 
 		args = append(args, user.Status)
 	}
 
+	// Nothing to update
+	if len(columns) == 0 {
+		log.Info("core>repo>user: No fields to update for user id "+strconv.Itoa(user.ID), reqID)
+		return nil
+	}
+	// User ID
 	args = append(args, user.ID)
 
 	columnStr := strings.Join(columns, ", ")
@@ -141,18 +154,32 @@ func (r *UserRepoImpl) DeleteUser(ctx context.Context, userID int) errors.Respon
 
 func (r *UserRepoImpl) GetUserbyID(ctx context.Context, userID int) (entity.User, errors.Response) {
 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
-	log.Info("core>repo>user: GetUserbyID started for user id "+strconv.Itoa(userID), reqID)
+
+	log.Info(
+		"core>repo>user: GetUserbyID started for user id "+
+			strconv.Itoa(userID),
+		reqID,
+	)
 
 	query := `
-		SELECT
-			u.id, u.email, u.password, u.is_password_set, u.status,
-			ur.role_id as role_id, r.name as role_name, r.code as role_code, r.status as role_status,
-			e.emp_id as emp_id, e.emp_name as emp_name,
-			u.last_login_at, u.session_token, u.created_at, u.updated_at, u.deleted_at
+		SELECT	u.id, u.email, u.password, u.is_password_set, u.status,	ur.role_id AS role_id, r.name AS role_name,
+			r.code AS role_code, r.status AS role_status,
+			e.emp_id AS emp_id,
+			COALESCE(e.emp_name, u.empname) AS emp_name,
+			u.last_login_at, u.session_token, u.created_at,	u.updated_at,u.deleted_at
 		FROM users u
-		LEFT JOIN user_roles ur ON ur.user_id = u.id AND ur.deleted_at IS NULL
-		LEFT JOIN roles r ON r.id = ur.role_id
-		LEFT JOIN employees e ON e.uid = u.id AND e.deleted_at IS NULL
+
+		LEFT JOIN user_roles ur
+			ON ur.user_id = u.id
+			AND ur.deleted_at IS NULL
+
+		LEFT JOIN roles r
+			ON r.id = ur.role_id
+
+		LEFT JOIN employees e
+			ON e.uid = u.id
+			AND e.deleted_at IS NULL
+
 		WHERE u.id = ?
 		AND u.deleted_at IS NULL
 	`
@@ -163,7 +190,9 @@ func (r *UserRepoImpl) GetUserbyID(ctx context.Context, userID int) (entity.User
 	err := r.db.Get(&userModel, query, userID)
 	if err != nil {
 		log.Error(err.Error(), reqID)
-		return userEntity, errors.ResponseNotFoundError(errors.NOT_FOUND_ERROR)
+
+		return userEntity,
+			errors.ResponseNotFoundError(errors.NOT_FOUND_ERROR)
 	}
 
 	userEntity = converter.UserModelToUserEntity(userModel)
@@ -177,16 +206,21 @@ func (r *UserRepoImpl) ListUser(ctx context.Context, filter *filters.ListFilter)
 	log.Info("core>repo>user: ListUser started", reqID)
 
 	queryStatement := `
-		SELECT
-			u.id, u.email, u.password, u.is_password_set, u.status,
-			ur.role_id as role_id, r.name as role_name, r.code as role_code, r.status as role_status,
-			e.emp_id as emp_id, e.emp_name as emp_name,
-			u.last_login_at, u.session_token, u.created_at, u.updated_at, u.deleted_at
-		FROM users u
-		LEFT JOIN user_roles ur ON ur.user_id = u.id AND ur.deleted_at IS NULL
-		LEFT JOIN roles r ON r.id = ur.role_id
-		LEFT JOIN employees e ON e.uid = u.id AND e.deleted_at IS NULL
-	`
+	SELECT
+		u.id,	u.email,u.password,	u.is_password_set,	u.status,	ur.role_id AS role_id,	r.name AS role_name,	r.code AS role_code,r.status AS role_status,
+		e.emp_id AS emp_id,
+		COALESCE(e.emp_name, u.empname) AS emp_name,
+		u.last_login_at,u.session_token,u.created_at,u.updated_at, u.deleted_at
+	FROM users u
+	LEFT JOIN user_roles ur
+		ON ur.user_id = u.id
+		AND ur.deleted_at IS NULL
+	LEFT JOIN roles r
+		ON r.id = ur.role_id
+	LEFT JOIN employees e
+		ON e.uid = u.id
+		AND e.deleted_at IS NULL
+`
 
 	modelmap := model.UserModelMap
 

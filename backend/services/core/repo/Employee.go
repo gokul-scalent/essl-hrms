@@ -150,10 +150,6 @@ func (r *EmployeeRepoImpl) CreateEmployee(ctx context.Context, employee entity.E
 		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
 	}
 
-	log.Info(
-		"USER ROLE COUNT INSIDE TRANSACTION: user_id="+strconv.Itoa(employee.UID)+", role_id="+strconv.Itoa(employeeRoleID)+", count="+strconv.Itoa(roleCount), reqID,
-	)
-
 	if roleCount != 1 {
 		log.Error("EMPLOYEE ROLE WAS NOT FOUND AFTER INSERT: user_id="+strconv.Itoa(employee.UID)+", role_id="+strconv.Itoa(employeeRoleID), reqID)
 
@@ -186,14 +182,16 @@ func (r *EmployeeRepoImpl) CreateEmployee(ctx context.Context, employee entity.E
 	)
 
 	if err != nil {
-
+		log.Error("failed to create employee: "+err.Error(), reqID)
 		if mysqlErr, ok := err.(*mysql.MySQLError); ok {
 			if mysqlErr.Number == 1062 {
 				return 0, errors.ResponseBadRequestError("Employee ID already exists")
 			}
 		}
 
-		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+		return 0, errors.ResponseInternalServerError(
+			errors.INTERNAL_SERVER_ERROR,
+		)
 	}
 
 	// STEP 6: Get generated employees.id
@@ -235,13 +233,23 @@ func (r *EmployeeRepoImpl) CreateEmployee(ctx context.Context, employee entity.E
 		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
 	}
 
-	// STEP 9: Commit transaction
+	if employeeUID != employee.UID {
+		log.Error("employee UID mismatch: expected="+strconv.Itoa(employee.UID)+", actual="+strconv.Itoa(employeeUID), reqID)
+
+		return 0, errors.ResponseInternalServerError(
+			errors.INTERNAL_SERVER_ERROR,
+		)
+	}
+
 	if err := tx.Commit(); err != nil {
 		log.Error("failed to commit CreateEmployee transaction: "+err.Error(), reqID)
 		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
 	}
 
 	committed = true
+
+	log.Info(
+		"CreateEmployee completed successfully: employeeID="+strconv.Itoa(int(employeeID))+", uid="+strconv.Itoa(employee.UID)+", empID="+employee.EmpID, reqID)
 	return int(employeeID), nil
 }
 

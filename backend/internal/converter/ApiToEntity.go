@@ -79,6 +79,7 @@ func UpdateUserAPIRequestToUserEntity(request *coreAPIModel.UpdateUserRequest) e
 	e := entity.User{
 
 		Email:        request.Email,
+		EmpName:      request.EmpName,
 		Password:     request.Password,
 		Status:       request.Status,
 		LastLoginAt:  request.LastLoginAt,
