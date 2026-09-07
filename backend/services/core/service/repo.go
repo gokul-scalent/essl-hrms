@@ -30,6 +30,7 @@ type UserRepo interface {
 	GetUserDetails(ctx context.Context, selectColumns []string, table string, whereColumn []string, args []interface{}) (*entity.User, errors.Response)
 	AssignUserRole(ctx context.Context, userID int, roleID int) errors.Response
 	ChangePassword(ctx context.Context, password string, userID int) errors.Response
+	UpdateUserPassword(ctx context.Context, userID int, hashedPassword string) errors.Response
 }
 
 type EmployeeRepo interface {

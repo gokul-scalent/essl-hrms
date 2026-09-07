@@ -67,6 +67,7 @@ func (h CoreHandlerRegistry) registerRoutes() (*gin.Engine, error) {
 	userRouter.GET("/:id", h.GetUserbyIDHandler)
 	userRouter.GET("/list", h.ListUserHandler)
 	userRouter.PATCH("/change-password", h.ChangePasswordHandler)
+	userRouter.POST("/:id/send-mail", h.SendUserMailHandler)
 
 	//---add the following line above in CoreHandlerRegistryOptions struct
 	//---UserService  coreService.UserService

@@ -358,3 +358,36 @@ func (r *UserRepoImpl) UpdateEmployeeName(ctx context.Context, userID int, empNa
 	}
 	return nil
 }
+
+func (r *UserRepoImpl) UpdateUserPassword(ctx context.Context, userID int, hashedPassword string) errors.Response {
+	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
+
+	query := `
+		UPDATE users
+		SET
+			password = ?,
+			is_password_set = 'NO',
+			updated_at = NOW()
+		WHERE id = ?
+		AND deleted_at IS NULL
+	`
+
+	result, err := r.db.Exec(query, hashedPassword, userID)
+	if err != nil {
+		log.Error("failed to update user password: "+err.Error(), reqID)
+
+		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Error("failed to get affected rows: "+err.Error(), reqID)
+
+		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	if rowsAffected == 0 {
+		return errors.ResponseNotFoundError(errors.NOT_FOUND_ERROR)
+	}
+	return nil
+}

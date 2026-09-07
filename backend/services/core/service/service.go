@@ -25,6 +25,7 @@ type UserService interface {
 	GetUserbyID(ctx context.Context, userID int) (entity.User, errors.Response)
 	ListUser(ctx context.Context, filter *filters.ListFilter) (int, []entity.User, errors.Response)
 	ChangePassword(ctx context.Context, oldPassword string, newPassword string) errors.Response
+	SendUserMail(ctx context.Context, userID int) errors.Response
 }
 
 type EmployeeService interface {

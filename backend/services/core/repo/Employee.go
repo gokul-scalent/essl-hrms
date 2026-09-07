@@ -63,7 +63,6 @@ func (r *EmployeeRepoImpl) CreateEmployee(ctx context.Context, employee entity.E
 	userQuery := `
 		INSERT INTO users (	email,	password, is_password_set,	status,	empname	) VALUES (?, ?, ?, ?, ?)
 	`
-
 	userResult, err := tx.Exec(
 		userQuery,
 		nil,              // email
@@ -248,8 +247,7 @@ func (r *EmployeeRepoImpl) CreateEmployee(ctx context.Context, employee entity.E
 
 	committed = true
 
-	log.Info(
-		"CreateEmployee completed successfully: employeeID="+strconv.Itoa(int(employeeID))+", uid="+strconv.Itoa(employee.UID)+", empID="+employee.EmpID, reqID)
+	log.Info("CreateEmployee completed successfully: employeeID="+strconv.Itoa(int(employeeID))+", uid="+strconv.Itoa(employee.UID)+", empID="+employee.EmpID, reqID)
 	return int(employeeID), nil
 }
 

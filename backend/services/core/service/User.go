@@ -63,7 +63,7 @@ func (s *UserServiceImpl) CreateUser(ctx context.Context, user entity.User) (int
 	user.IsPasswordSet = "NO"
 	// New users are ACTIVE.
 	if user.Status == "" {
-		user.Status = "ACTIVE"
+		user.Status = "INACTIVE"
 	}
 
 	log.Info("creating user with email="+user.Email+" status="+user.Status, reqID)
@@ -310,5 +310,155 @@ func (s *UserServiceImpl) ChangePassword(ctx context.Context, oldPassword string
 	}
 
 	log.Info("core>service>user: ChangePassword completed for user id "+strconv.Itoa(userEntity.ID), reqID)
+	return nil
+}
+
+func (s *UserServiceImpl) SendUserMail(ctx context.Context, userID int) errors.Response {
+
+	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
+	log.Info("core>service>user: send user mail started for user id "+strconv.Itoa(userID), reqID)
+
+	// 1. Get logged-in user's session
+	sessionEntity, err := mailoraContext.GetSessionFromContext(ctx)
+	if err != nil {
+		log.Error("failed to get session: "+err.Error(), reqID)
+
+		return errors.ResponseUnauthorizedError("access denied")
+	}
+
+	// 2. Only ADMIN and HR can send mail
+	if sessionEntity.Role != "ADMIN" &&
+		sessionEntity.Role != "HR" {
+
+		log.Error("only ADMIN or HR can send user mail", reqID)
+
+		return errors.ResponseUnauthorizedError("access denied")
+	}
+
+	// 3. Get target user
+	user, errResp := s.userRepo.GetUserbyID(ctx, userID)
+	if errResp != nil {
+		log.Error("failed to get user: "+errResp.Error(), reqID)
+
+		return errResp
+	}
+
+	if user.Email == "" {
+		log.Error("user email is not available", reqID)
+
+		return errors.ResponseBadRequestError("User email is not available")
+	}
+
+	// 4. Check email sending configuration
+	if s.config.IsEmailSendingEnabled != "ACTIVE" {
+		log.Error("email sending is disabled", reqID)
+
+		return errors.ResponseBadRequestError("Email sending is disabled")
+	}
+
+	// 5. Generate new password
+	password, err := utils.GenerateRandomPassword(12)
+	if err != nil {
+		log.Error("failed to generate password: "+err.Error(), reqID)
+
+		return errors.ResponseInternalServerError(
+			errors.INTERNAL_SERVER_ERROR,
+		)
+	}
+
+	// 6. Hash password
+	hashedPassword, err := bcrypt.GenerateFromPassword(
+		[]byte(password),
+		bcrypt.DefaultCost,
+	)
+
+	if err != nil {
+		log.Error("failed to hash generated password: "+err.Error(), reqID)
+
+		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	// 7. Update password in database
+	errResp = s.userRepo.UpdateUserPassword(ctx, userID, string(hashedPassword))
+
+	if errResp != nil {
+		log.Error("failed to update user password: "+errResp.Error(), reqID)
+		return errResp
+	}
+
+	// 8. Prepare email template data
+	type UserEmailData struct {
+		UserName      string
+		LoginEmail    string
+		LoginPassword string
+		LoginLink     string
+	}
+
+	emailData := UserEmailData{
+		UserName:      user.Email,
+		LoginEmail:    user.Email,
+		LoginPassword: password,
+		LoginLink:     commonConstants.LOGIN_LINK,
+	}
+	// 9. Load email template
+
+	templatePath := fmt.Sprintf(
+		s.config.TemplatePath,
+		s.config.WelcomeUserTemplateConstant,
+	)
+
+	templateConstant := s.config.WelcomeUserTemplateConstant
+
+	tmpl, err := template.ParseFiles(templatePath)
+	if err != nil {
+		log.Error("failed to parse welcome email template: "+err.Error(), reqID)
+
+		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	// 10. Execute template
+	var emailHTML bytes.Buffer
+
+	err = tmpl.ExecuteTemplate(
+		&emailHTML,
+		fmt.Sprintf("%s.html", templateConstant),
+		emailData,
+	)
+
+	if err != nil {
+		log.Error("failed to execute welcome email template: "+err.Error(), reqID)
+
+		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	// 11. Build email payload
+	emailPayload := packageEmail.EmailPayload{
+		EmailSubject: s.config.WelcomeUserEmailSubject,
+		ToEmail:      user.Email,
+		HtmlContent:  emailHTML.String(),
+		SenderEmail:  s.config.SenderEmail,
+		SenderName:   s.config.SenderName,
+	}
+
+	// 12. Create SMTP client
+	emailSender := smtp.NewSmtpClient(
+		&packageEmail.EmailConfig{
+			ServerUrl:      s.config.SmtpHost,
+			Port:           s.config.SmtpPort,
+			AccessKey:      s.config.SmtpUsername,
+			SecretKey:      s.config.SmtpPassword,
+			EncryptionType: s.config.SmtpEncryptionType,
+		},
+	)
+
+	// 13. Send email
+	_, _, err = emailSender.Send(ctx, emailPayload, "")
+
+	if err != nil {
+		log.Error("failed to send user mail: "+err.Error(), reqID)
+		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+	log.Info("core>service>user: send user mail completed for user id "+strconv.Itoa(userID), reqID)
+
 	return nil
 }
