@@ -572,3 +572,101 @@ func (r *UserRepoImpl) UpdateUserPassword(ctx context.Context, userID int, hashe
 	}
 	return nil
 }
+
+func (r *UserRepoImpl) UpdateUserRoles(ctx context.Context, userID int, roleIDs []int) errors.Response {
+	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
+	log.Info("core>repo>user: UpdateUserRoles started for user id "+strconv.Itoa(userID), reqID)
+
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		log.Error("failed to begin transaction: "+err.Error(), reqID)
+		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	// Rollback automatically if any error occurs.
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	// 1. Soft delete all currently active roles
+	_, err = tx.ExecContext(
+		ctx,
+		`
+		UPDATE user_roles
+		SET deleted_at = NOW()
+		WHERE user_id = ?
+		AND deleted_at IS NULL
+		`,
+		userID,
+	)
+
+	if err != nil {
+		log.Error("failed to remove existing user roles: "+err.Error(), reqID)
+		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	// 2. Add/restore selected roles
+	for _, roleID := range roleIDs {
+		if roleID <= 0 {
+			continue
+		}
+
+		// First try to restore an existing soft-deleted role.
+		result, err := tx.ExecContext(
+			ctx,
+			`
+			UPDATE user_roles
+			SET deleted_at = NULL
+			WHERE user_id = ?
+			AND role_id = ?
+			AND deleted_at IS NOT NULL
+			`,
+			userID,
+			roleID,
+		)
+
+		if err != nil {
+			log.Error("failed to restore user role: "+err.Error(), reqID)
+			return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+		}
+
+		rowsAffected, err := result.RowsAffected()
+		if err != nil {
+			log.Error("failed to get affected rows: "+err.Error(), reqID)
+			return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+		}
+
+		// If role did not previously exist, insert it.
+		if rowsAffected == 0 {
+
+			_, err = tx.ExecContext(
+				ctx,
+				`
+				INSERT INTO user_roles (
+					user_id,
+					role_id
+				)
+				VALUES (?, ?)
+				`,
+				userID,
+				roleID,
+			)
+
+			if err != nil {
+				log.Error("failed to insert user role: "+err.Error(), reqID)
+				return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+			}
+		}
+	}
+
+	// 3. Commit transaction
+	if err = tx.Commit(); err != nil {
+		log.Error("failed to commit user roles: "+err.Error(), reqID)
+		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	log.Info("core>repo>user: UpdateUserRoles completed for user id "+strconv.Itoa(userID), reqID)
+	return nil
+}

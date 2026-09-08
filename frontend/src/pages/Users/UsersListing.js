@@ -63,8 +63,8 @@ const initialFields = {
     error: "",
   },
   role: {
-    value: "",
-    original: "",
+    value: [],
+    original: [],
     error: "",
   },
   status: {
@@ -349,7 +349,6 @@ function UsersListing() {
         if (!trimmedValue) {
           return "Employee name is required.";
         }
-
         return "";
 
       case "email":
@@ -358,6 +357,12 @@ function UsersListing() {
         }
         if (!REGEX.EMAIL_REGEX.test(trimmedValue)) {
           return "Please enter a valid email address.";
+        }
+        return "";
+
+      case "role":
+        if (!Array.isArray(trimmedValue) || trimmedValue.length === 0) {
+          return "At least one role is required.";
         }
         return "";
 
@@ -382,16 +387,29 @@ function UsersListing() {
 
         const field = formData[key];
 
-        if (panelMode !== "edit" || field.value !== field.original) {
-          if (key === "role") {
-            // Send only role ID to backend
-            payload.roleID = field.value?.id || 0;
-          } else {
-            payload[key] =
-              typeof field.value === "string"
-                ? field.value.trim()
-                : field.value;
+        if (key === "role") {
+          const currentRoleIDs = (field.value || [])
+            .map((role) => role.id)
+            .filter(Boolean);
+
+          const originalRoleIDs = (field.original || [])
+            .map((role) => role.id)
+            .filter(Boolean);
+
+          const rolesChanged =
+            JSON.stringify([...currentRoleIDs].sort()) !==
+            JSON.stringify([...originalRoleIDs].sort());
+
+          if (panelMode !== "edit" || rolesChanged) {
+            payload.roleIDs = currentRoleIDs;
           }
+
+          return;
+        }
+
+        if (panelMode !== "edit" || field.value !== field.original) {
+          payload[key] =
+            typeof field.value === "string" ? field.value.trim() : field.value;
         }
       });
 
@@ -400,6 +418,7 @@ function UsersListing() {
         notify("No changes detected", "info");
         return;
       }
+
       const res =
         panelMode === "edit"
           ? await updateUserDetail(formData.id, payload)
@@ -415,7 +434,7 @@ function UsersListing() {
         );
 
         closeModal();
-        // Refresh users list
+
         getUsersList(
           dispatch,
           pageNum,
@@ -535,8 +554,8 @@ function UsersListing() {
         error: "",
       },
       role: {
-        value: null,
-        original: null,
+        value: [],
+        original: [],
         error: "",
       },
       status: {
@@ -574,20 +593,18 @@ function UsersListing() {
             error: "",
           },
           role: {
-            value: data?.role
-              ? {
-                  id: data.role.ID,
-                  name: data.role.name,
-                  code: data.role.code,
-                }
-              : null,
-            original: data?.role
-              ? {
-                  id: data.role.ID,
-                  name: data.role.name,
-                  code: data.role.code,
-                }
-              : null,
+            value: (data?.roles || []).map((role) => ({
+              id: role.ID,
+              name: role.name,
+              code: role.code,
+            })),
+
+            original: (data?.roles || []).map((role) => ({
+              id: role.ID,
+              name: role.name,
+              code: role.code,
+            })),
+
             error: "",
           },
           status: {
@@ -1010,6 +1027,32 @@ function UsersListing() {
                       </MDTypography>
                     )}
                   </Grid>
+                  <Grid item xs={12}>
+                    <RequiredLabel required>Select Role</RequiredLabel>
+                    <Autocomplete
+                      {...autoCompleteProps}
+                      multiple
+                      size="small"
+                      disablePortal
+                      options={roleOptions}
+                      getOptionLabel={(option) => option.name || ""}
+                      value={formData.role.value || []}
+                      onChange={(event, newValue) =>
+                        handleChange("role", newValue)
+                      }
+                      isOptionEqualToValue={(option, value) =>
+                        option?.id === value?.id
+                      }
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          placeholder="Select role"
+                          error={!!formData.role.error}
+                          helperText={formData.role.error}
+                        />
+                      )}
+                    />
+                  </Grid>
 
                   <Grid item xs={12}>
                     <RequiredLabel>Status</RequiredLabel>
@@ -1034,33 +1077,6 @@ function UsersListing() {
                         sx={radioLabelSx}
                       />
                     </RadioGroup>
-                  </Grid>
-
-                  <Grid item xs={12}>
-                    <RequiredLabel required>Role</RequiredLabel>
-
-                    <Autocomplete
-                      {...autoCompleteProps}
-                      size="small"
-                      disablePortal
-                      options={roleOptions}
-                      getOptionLabel={(option) => option.name || ""}
-                      value={formData.role.value || null}
-                      onChange={(event, newValue) =>
-                        handleChange("role", newValue)
-                      }
-                      isOptionEqualToValue={(option, value) =>
-                        option?.id === value?.id
-                      }
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          placeholder="Select role"
-                          error={!!formData.role.error}
-                          helperText={formData.role.error}
-                        />
-                      )}
-                    />
                   </Grid>
 
                   {/* Save Button */}
