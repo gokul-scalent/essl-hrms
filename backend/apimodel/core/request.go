@@ -28,6 +28,7 @@ type User struct {
 type UpdateUserRequest struct {
 	Email        string    `json:"email" binding:"omitempty"`
 	EmpName      string    `json:"empName" binding:"omitempty"`
+	City         string    `json:"city" binding:"required,oneof=NASHIK PUNE"`
 	Password     string    `json:"password" binding:"omitempty"`
 	Status       string    `json:"status" binding:"omitempty"`
 	LastLoginAt  time.Time `json:"lastLoginAt" binding:"omitempty"`

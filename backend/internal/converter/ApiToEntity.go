@@ -81,6 +81,7 @@ func UpdateUserAPIRequestToUserEntity(request *coreAPIModel.UpdateUserRequest) e
 
 		Email:        request.Email,
 		EmpName:      request.EmpName,
+		City:         request.City,
 		Password:     request.Password,
 		Status:       request.Status,
 		LastLoginAt:  request.LastLoginAt,

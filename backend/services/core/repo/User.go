@@ -330,7 +330,7 @@ func (r *UserRepoImpl) ListUser(ctx context.Context, filter *filters.ListFilter)
 
 		whereStr = append(whereStr, "(u.email LIKE ? OR e.emp_name LIKE ? OR u.empname LIKE ? OR e.emp_id LIKE ? OR u.city LIKE ?)")
 
-		args = append(args, search, search, search, search)
+		args = append(args, search, search, search, search, search)
 	}
 
 	// Soft delete
