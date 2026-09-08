@@ -153,7 +153,7 @@ function UsersListing() {
         1,
       email: item?.email || "-",
       empName: item?.empName || "-",
-      role: item?.role || null,
+      roles: item?.roles || [],
       status: item?.status || "INACTIVE",
       lastLoginAt: item?.lastLoginAt || null,
     })) || [];
@@ -200,11 +200,24 @@ function UsersListing() {
       Cell: (cell) => wrapCell(cell.value || "-", "200px"),
     },
     {
-      Header: "Role",
-      accessor: "role",
-      align: "left",
-      width: "120px",
-      Cell: (cell) => cell.value?.name || "-",
+      Header: "Roles",
+      accessor: "roles",
+      id: "roles",
+      Cell: ({ value }) => {
+        if (!value || value.length === 0) {
+          return "-";
+        }
+        if (value.length === 1) {
+          return value[0].name;
+        }
+        return (
+          <ul style={{ margin: 0, paddingLeft: "18px" }}>
+            {value.map((role) => (
+              <li key={role.ID}>{role.name}</li>
+            ))}
+          </ul>
+        );
+      },
     },
     {
       Header: "Status",

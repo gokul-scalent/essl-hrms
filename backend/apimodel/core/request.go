@@ -20,6 +20,7 @@ type User struct {
 	LastLoginAt  *time.Time `json:"lastLoginAt" binding:"omitempty"`
 	SessionToken string     `json:"sessionToken" binding:"omitempty"`
 	RoleIDs      []int      `json:"roleIDs" binding:"required"`
+
 }
 
 type UpdateUserRequest struct {

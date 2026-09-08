@@ -8,6 +8,9 @@ type User struct {
 	Password      string
 	IsPasswordSet string
 	RoleIDs       []int
+	RoleCodes     []string
+	RoleNames     []string
+	RoleStatus    []string
 	Roles         []Role
 	Status        string
 	LastLoginAt   time.Time

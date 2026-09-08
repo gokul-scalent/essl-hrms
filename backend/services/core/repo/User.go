@@ -167,11 +167,42 @@ func (r *UserRepoImpl) GetUserbyID(ctx context.Context, userID int) (entity.User
 	)
 
 	query := `
-		SELECT	u.id, u.email, u.password, u.is_password_set, u.status,	ur.role_id AS role_id, r.name AS role_name,
-			r.code AS role_code, r.status AS role_status,
+		SELECT
+			u.id,
+			u.email,
+			u.password,
+			u.is_password_set,
+			u.status,
+
+			GROUP_CONCAT(
+				DISTINCT ur.role_id
+				ORDER BY ur.role_id
+			) AS role_ids,
+
+			GROUP_CONCAT(
+				DISTINCT r.code
+				ORDER BY ur.role_id
+			) AS role_codes,
+
+			GROUP_CONCAT(
+				DISTINCT r.name
+				ORDER BY ur.role_id
+			) AS role_names,
+
+			GROUP_CONCAT(
+				DISTINCT r.status
+				ORDER BY ur.role_id
+			) AS role_status,
+
 			e.emp_id AS emp_id,
 			COALESCE(e.emp_name, u.empname) AS emp_name,
-			u.last_login_at, u.session_token, u.created_at,	u.updated_at,u.deleted_at
+
+			u.last_login_at,
+			u.session_token,
+			u.created_at,
+			u.updated_at,
+			u.deleted_at
+
 		FROM users u
 
 		LEFT JOIN user_roles ur
@@ -180,6 +211,8 @@ func (r *UserRepoImpl) GetUserbyID(ctx context.Context, userID int) (entity.User
 
 		LEFT JOIN roles r
 			ON r.id = ur.role_id
+			AND r.deleted_at IS NULL
+			AND r.status = 'ACTIVE'
 
 		LEFT JOIN employees e
 			ON e.uid = u.id
@@ -187,6 +220,20 @@ func (r *UserRepoImpl) GetUserbyID(ctx context.Context, userID int) (entity.User
 
 		WHERE u.id = ?
 		AND u.deleted_at IS NULL
+
+		GROUP BY
+			u.id,
+			u.email,
+			u.password,
+			u.is_password_set,
+			u.status,
+			e.emp_id,
+			e.emp_name,
+			u.last_login_at,
+			u.session_token,
+			u.created_at,
+			u.updated_at,
+			u.deleted_at
 	`
 
 	userModel := model.User{}
@@ -206,88 +253,204 @@ func (r *UserRepoImpl) GetUserbyID(ctx context.Context, userID int) (entity.User
 	return userEntity, nil
 }
 
-func (r *UserRepoImpl) ListUser(ctx context.Context, filter *filters.ListFilter) (int, []entity.User, errors.Response) {
+func (r *UserRepoImpl) ListUser(
+	ctx context.Context,
+	filter *filters.ListFilter,
+) (int, []entity.User, errors.Response) {
+
 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
 	log.Info("core>repo>user: ListUser started", reqID)
 
 	queryStatement := `
-	SELECT
-		u.id,	u.email,u.password,	u.is_password_set,	u.status,	ur.role_id AS role_id,	r.name AS role_name,	r.code AS role_code,r.status AS role_status,
-		e.emp_id AS emp_id,
-		COALESCE(e.emp_name, u.empname) AS emp_name,
-		u.last_login_at,u.session_token,u.created_at,u.updated_at, u.deleted_at
-	FROM users u
-	LEFT JOIN user_roles ur
-		ON ur.user_id = u.id
-		AND ur.deleted_at IS NULL
-	LEFT JOIN roles r
-		ON r.id = ur.role_id
-	LEFT JOIN employees e
-		ON e.uid = u.id
-		AND e.deleted_at IS NULL
-`
+		SELECT
+			u.id,
+			u.email,
+			u.password,
+			u.is_password_set,
+			u.status,
+
+			GROUP_CONCAT(
+				DISTINCT ur.role_id
+				ORDER BY ur.role_id
+			) AS role_ids,
+
+			GROUP_CONCAT(
+				DISTINCT r.code
+				ORDER BY ur.role_id
+			) AS role_codes,
+
+			GROUP_CONCAT(
+				DISTINCT r.name
+				ORDER BY ur.role_id
+			) AS role_names,
+
+			GROUP_CONCAT(
+				DISTINCT r.status
+				ORDER BY ur.role_id
+			) AS role_status,
+
+			e.emp_id AS emp_id,
+			COALESCE(e.emp_name, u.empname) AS emp_name,
+
+			u.last_login_at,
+			u.session_token,
+			u.created_at,
+			u.updated_at,
+			u.deleted_at
+
+		FROM users u
+
+		LEFT JOIN user_roles ur
+			ON ur.user_id = u.id
+			AND ur.deleted_at IS NULL
+
+		LEFT JOIN roles r
+			ON r.id = ur.role_id
+			AND r.deleted_at IS NULL
+			AND r.status = 'ACTIVE'
+
+		LEFT JOIN employees e
+			ON e.uid = u.id
+			AND e.deleted_at IS NULL
+	`
 
 	modelmap := model.UserModelMap
 
-	whereStr, args := filterPkg.CreateFilterStr(filter.Filters, modelmap)
+	whereStr, args := filterPkg.CreateFilterStr(
+		filter.Filters,
+		modelmap,
+	)
 
-	// Search string
+	// Search
 	if filter.SearchString != "" {
 		search := "%" + strings.TrimSpace(filter.SearchString) + "%"
-		whereStr = append(whereStr, "u.email LIKE ?")
-		args = append(args, search)
+
+		whereStr = append(
+			whereStr,
+			"(u.email LIKE ? OR e.emp_name LIKE ? OR e.emp_id LIKE ?)",
+		)
+
+		args = append(
+			args,
+			search,
+			search,
+			search,
+		)
 	}
 
 	// Soft delete
-	whereStr = append(whereStr, "u.deleted_at IS NULL")
+	whereStr = append(
+		whereStr,
+		"u.deleted_at IS NULL",
+	)
 
 	whereString := strings.Join(whereStr, " AND ")
-	whereString = "WHERE " + whereString
 
-	queryStatement = queryStatement + whereString
+	if whereString != "" {
+		queryStatement += " WHERE " + whereString
+	}
 
-	sortStr := filterPkg.CreateSortStr(filter.SortOption, modelmap)
-	queryStatement = queryStatement + sortStr
+	/*
+		Important:
+		Because we are using GROUP_CONCAT(), every user must
+		be grouped into one row.
+	*/
+	queryStatement += `
+		GROUP BY
+			u.id,
+			u.email,
+			u.password,
+			u.is_password_set,
+			u.status,
+			e.emp_id,
+			e.emp_name,
+			u.last_login_at,
+			u.session_token,
+			u.created_at,
+			u.updated_at,
+			u.deleted_at
+	`
 
-	var limitQueryStmt string
+	// Sort
+	sortStr := filterPkg.CreateSortStr(
+		filter.SortOption,
+		modelmap,
+	)
 
-	emptySortOption := filters.SortOption{}
+	queryStatement += sortStr
 
-	totalRecordQueryStatement := "SELECT COUNT(id) as totalRecords FROM (" + queryStatement + ") as result"
+	// Count users
+	countQuery := `
+		SELECT COUNT(*)
+		FROM (
+			` + queryStatement + `
+		) AS result
+	`
 
 	var count int
-	err := r.db.Get(&count, totalRecordQueryStatement, args...)
+
+	err := r.db.Get(
+		&count,
+		countQuery,
+		args...,
+	)
+
 	if err != nil {
 		log.Error(err.Error(), reqID)
-		return 0, nil, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+
+		return 0, nil,
+			errors.ResponseInternalServerError(
+				errors.INTERNAL_SERVER_ERROR,
+			)
 	}
 
-	if filter.Page == 0 && len(filter.Filters) == 0 && filter.SortOption == emptySortOption && filter.SearchString == "" {
-		limitQueryStmt = queryStatement
-
-	} else {
-		if filter.Page == 0 {
-			filter.Page = 1
-		}
-
-		offset := commonConstants.NO_OF_RECORDS_PER_PAGE * (filter.Page - 1)
-		limitQueryStmt = queryStatement + " LIMIT ?,?"
-		args = append(args, offset, commonConstants.NO_OF_RECORDS_PER_PAGE)
+	// Pagination
+	if filter.Page == 0 {
+		filter.Page = 1
 	}
 
+	offset := commonConstants.NO_OF_RECORDS_PER_PAGE *
+		(filter.Page - 1)
+
+	limitQuery := queryStatement +
+		" LIMIT ?,?"
+
+	argsWithPagination := append(
+		append([]interface{}{}, args...),
+		offset,
+		commonConstants.NO_OF_RECORDS_PER_PAGE,
+	)
+
+	// Fetch users
 	usersModel := []model.User{}
 
-	err = r.db.Select(&usersModel, limitQueryStmt, args...)
+	err = r.db.Select(
+		&usersModel,
+		limitQuery,
+		argsWithPagination...,
+	)
+
 	if err != nil {
 		log.Error(err.Error(), reqID)
-		return 0, nil, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+
+		return 0, nil,
+			errors.ResponseInternalServerError(
+				errors.INTERNAL_SERVER_ERROR,
+			)
 	}
 
+	// Convert to entity
 	userEntities := []entity.User{}
-
 	for _, userModel := range usersModel {
-		userEntity := converter.UserModelToUserEntity(userModel)
-		userEntities = append(userEntities, userEntity)
+
+		userEntity := converter.UserModelToUserEntity(
+			userModel,
+		)
+
+		userEntities = append(
+			userEntities,
+			userEntity,
+		)
 	}
 
 	log.Info("core>repo>user: ListUser completed", reqID)

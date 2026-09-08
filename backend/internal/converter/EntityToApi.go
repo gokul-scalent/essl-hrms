@@ -1,40 +1,46 @@
 package converter
 
 import (
-	"time"
-
+	apimodel "github.com/scalent.io/scalent-hrms/apimodel/core"
 	coreAPIModel "github.com/scalent.io/scalent-hrms/apimodel/core"
 	"github.com/scalent.io/scalent-hrms/entity"
 )
 
-func UserEntityToUserAPIModelResponse(e entity.User) coreAPIModel.UserResponse {
-	var lastLoginAt *time.Time
-
-	if !e.LastLoginAt.IsZero() {
-		lastLoginAt = &e.LastLoginAt
+func UserEntityToUserAPIModelResponse(user entity.User) apimodel.UserResponse {
+	response := apimodel.UserResponse{
+		ID:            user.ID,
+		Email:         user.Email,
+		Status:        user.Status,
+		IsPasswordSet: user.IsPasswordSet,
+		EmpID:         user.EmpID,
+		EmpName:       user.EmpName,
 	}
 
-	roles := make([]coreAPIModel.RoleResponse, 0, len(e.Roles))
-
-	for _, role := range e.Roles {
-		roles = append(roles, coreAPIModel.RoleResponse{
-			ID:     role.ID,
-			Name:   role.Name,
-			Code:   role.Code,
-			Status: role.Status,
-		})
+	if !user.LastLoginAt.IsZero() {
+		response.LastLoginAt = &user.LastLoginAt
 	}
 
-	return coreAPIModel.UserResponse{
-		ID:            e.ID,
-		Email:         e.Email,
-		Status:        e.Status,
-		IsPasswordSet: e.IsPasswordSet,
-		LastLoginAt:   lastLoginAt,
-		Roles:         roles,
-		EmpID:         e.EmpID,
-		EmpName:       e.EmpName,
+	for i, roleID := range user.RoleIDs {
+		role := apimodel.RoleResponse{
+			ID: roleID,
+		}
+
+		if i < len(user.RoleNames) {
+			role.Name = user.RoleNames[i]
+		}
+
+		if i < len(user.RoleCodes) {
+			role.Code = user.RoleCodes[i]
+		}
+
+		if i < len(user.RoleStatus) {
+			role.Status = user.RoleStatus[i]
+		}
+
+		response.Roles = append(response.Roles, role)
 	}
+
+	return response
 }
 
 func EmployeeEntityToUserAPIModelResponse(e entity.Employee) coreAPIModel.EmployeeResponse {

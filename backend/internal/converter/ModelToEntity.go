@@ -1,6 +1,8 @@
 package converter
 
 import (
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/scalent.io/scalent-hrms/entity"
@@ -23,10 +25,31 @@ func UserModelToUserEntity(m model.User) entity.User {
 		EmpName:       m.EmpName.String,
 	}
 
-	if m.RoleID.Valid {
-		e.RoleIDs = []int{
-			int(m.RoleID.Int64),
+	// Role IDs
+	if m.RoleIDs.Valid && m.RoleIDs.String != "" {
+		roleIDs := strings.Split(m.RoleIDs.String, ",")
+
+		for _, roleID := range roleIDs {
+			id, err := strconv.Atoi(roleID)
+			if err != nil {
+				continue
+			}
+
+			e.RoleIDs = append(e.RoleIDs, id)
 		}
+	}
+
+	// Role Codes
+	if m.RoleCodes.Valid && m.RoleCodes.String != "" {
+		e.RoleCodes = strings.Split(m.RoleCodes.String, ",")
+	}
+	// Role Names
+	if m.RoleNames.Valid && m.RoleNames.String != "" {
+		e.RoleNames = strings.Split(m.RoleNames.String, ",")
+	}
+	// Role Status
+	if m.RoleStatus.Valid && m.RoleStatus.String != "" {
+		e.RoleStatus = strings.Split(m.RoleStatus.String, ",")
 	}
 
 	return e
