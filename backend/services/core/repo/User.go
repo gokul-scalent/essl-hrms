@@ -294,7 +294,7 @@ func (r *UserRepoImpl) ListUser(ctx context.Context, filter *filters.ListFilter)
 
 			e.emp_id AS emp_id,
 			COALESCE(e.emp_name, u.empname) AS emp_name,
-            u.city AS city,
+			u.city AS city,
 			u.last_login_at,
 			u.session_token,
 			u.created_at,
@@ -319,12 +319,50 @@ func (r *UserRepoImpl) ListUser(ctx context.Context, filter *filters.ListFilter)
 
 	modelmap := model.UserModelMap
 
-	whereStr, args := filterPkg.CreateFilterStr(
-		filter.Filters,
-		modelmap,
-	)
+	var whereStr []string
+	var args []interface{}
+	var genericFilters []filters.Filter
+	for _, f := range filter.Filters {
+		switch f.Field {
+		case "Status":
+			if len(f.FilterValues) == 0 {
+				continue
+			}
+			switch f.Condition {
+			case "eq":
+				whereStr = append(
+					whereStr,
+					"u.status = ?",
+				)
+				args = append(args, f.FilterValues[0])
+			case "in":
+				placeholders := make([]string, 0, len(f.FilterValues))
+				for _, value := range f.FilterValues {
+					placeholders = append(placeholders, "?")
+					args = append(args, value)
+				}
+				whereStr = append(whereStr, "u.status IN ("+strings.Join(placeholders, ",")+")")
 
-	// Search
+			case "notin":
+				placeholders := make([]string, 0, len(f.FilterValues))
+				for _, value := range f.FilterValues {
+					placeholders = append(placeholders, "?")
+					args = append(args, value)
+				}
+
+				whereStr = append(whereStr, "u.status NOT IN ("+strings.Join(placeholders, ",")+")")
+			}
+
+		default:
+			genericFilters = append(genericFilters, f)
+		}
+	}
+	if len(genericFilters) > 0 {
+		genericWhereStr, genericArgs :=
+			filterPkg.CreateFilterStr(genericFilters, modelmap)
+		whereStr = append(whereStr, genericWhereStr...)
+		args = append(args, genericArgs...)
+	}
 	if filter.SearchString != "" {
 		search := "%" + strings.TrimSpace(filter.SearchString) + "%"
 

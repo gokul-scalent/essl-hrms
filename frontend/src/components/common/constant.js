@@ -11,6 +11,9 @@ export const ROLES = {
 // Role-based default route for now
 export const DEFAULT_ROUTES = {
   [ROLES.ADMIN]: "/admin/dashboard",
+  [ROLES.HR]: "/admin/dashboard",
+  [ROLES.EXTERNAL]: "/admin/dashboard",
+  [ROLES.EMPLOYEE]: "/admin/dashboard",
 };
 
 export const LEADS_STATUS = [
@@ -75,6 +78,6 @@ export const ATTENDANCE_LOG_STATE = [
 ];
 
 export const CITY = [
-  { label: "NASHIK", value: "Nashik" },
-  { label: "PUNE", value: "Pune" },
+  { label: "Nashik", value: "NASHIK" },
+  { label: "Pune", value: "PUNE" },
 ];

@@ -26,11 +26,11 @@ type User struct {
 }
 
 type UpdateUserRequest struct {
-	Email        string    `json:"email" binding:"omitempty"`
+	Email        string    `json:"email" binding:"omitempty,email"`
 	EmpName      string    `json:"empName" binding:"omitempty"`
-	City         string    `json:"city" binding:"required,oneof=NASHIK PUNE"`
+	City         string    `json:"city" binding:"omitempty,oneof=NASHIK PUNE"`
 	Password     string    `json:"password" binding:"omitempty"`
-	Status       string    `json:"status" binding:"omitempty"`
+	Status       string    `json:"status" binding:"omitempty,oneof=ACTIVE INACTIVE"`
 	LastLoginAt  time.Time `json:"lastLoginAt" binding:"omitempty"`
 	SessionToken string    `json:"sessionToken" binding:"omitempty"`
 	RoleIDs      []int     `json:"roleIDs" binding:"omitempty"`

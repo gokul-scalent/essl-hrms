@@ -55,7 +55,7 @@ const routes = [
     route: "/dashboard",
     show: true,
     layout: "/admin",
-    roles: ["ADMIN"],
+    roles: ["ADMIN", "HR", "EXTERNAL", "EMPLOYEE"],
     component: <Dashboard />,
   },
   {
