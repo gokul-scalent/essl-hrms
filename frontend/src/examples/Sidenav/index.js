@@ -281,7 +281,10 @@ function Sidenav({ brand, brandName, routes, onChangePassword, ...rest }) {
             <MenuItem
               onClick={() => {
                 handleMenuClose();
-                onChangePassword();
+
+                if (onChangePassword) {
+                  onChangePassword();
+                }
               }}
             >
               <ListItemIcon sx={{ minWidth: 32 }}>
@@ -326,7 +329,7 @@ Sidenav.propTypes = {
   brand: PropTypes.string,
   brandName: PropTypes.string.isRequired,
   routes: PropTypes.arrayOf(PropTypes.object).isRequired,
-  onChangePassword: PropTypes.func.isRequired,
+  onChangePassword: PropTypes.func,
 };
 
 Sidenav.defaultProps = {

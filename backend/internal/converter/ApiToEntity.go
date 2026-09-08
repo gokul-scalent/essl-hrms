@@ -60,9 +60,7 @@ func UserAPIToUserEntity(request *coreAPIModel.User) entity.User {
 		Status:        request.Status,
 		LastLoginAt:   lastLoginAt,
 		SessionToken:  request.SessionToken,
-		Role: entity.Role{
-			ID: request.RoleID,
-		},
+		RoleIDs:       request.RoleIDs,
 	}
 
 	return e
@@ -84,9 +82,7 @@ func UpdateUserAPIRequestToUserEntity(request *coreAPIModel.UpdateUserRequest) e
 		Status:       request.Status,
 		LastLoginAt:  request.LastLoginAt,
 		SessionToken: request.SessionToken,
-		Role: entity.Role{
-			ID: request.RoleID,
-		},
+		RoleIDs:      request.RoleIDs,
 	}
 
 	return e

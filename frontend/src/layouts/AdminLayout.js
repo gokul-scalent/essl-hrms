@@ -7,7 +7,6 @@ import { useMaterialUIController, setMiniSidenav } from "context";
 import { useAuth } from "pages/Auth/AuthContext";
 import LoadingScreen from "./LoadingScreen";
 import { DEFAULT_ROUTES } from "components/common/constant";
-import logo from "assets/images/brand/mailora-1.png";
 import ChangePasswordModal from "pages/ChangePassword/ChangePasswordModal";
 
 export default function AdminLayout() {
@@ -16,28 +15,35 @@ export default function AdminLayout() {
   const [onMouseEnter, setOnMouseEnter] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
-  const { role, isAuthenticated, isPasswordSet, loading } = useAuth();
+  const {
+    role,
+    isAuthenticated,
+    isPasswordSet,
+    loading,
+  } = useAuth();
 
+  // Always treat role as an array
+  const roles = Array.isArray(role) ? role : [];
+
+  // Scroll to top when layout loads
   useEffect(() => {
     document.documentElement.scrollTop = 0;
     document.scrollingElement.scrollTop = 0;
   }, []);
 
+  // Open change password modal when password is not set
   useEffect(() => {
     if (isAuthenticated && isPasswordSet === "NO") {
       setChangePasswordOpen(true);
     }
   }, [isAuthenticated, isPasswordSet]);
-
-  useEffect(() => {
-    if (isAuthenticated && isPasswordSet === "NO") {
-      setChangePasswordOpen(true);
-    }
-  }, [isAuthenticated, isPasswordSet]);
-    const defaultRoute = DEFAULT_ROUTES[role] || "/admin/email-lists";
 
   if (loading) {
     return <LoadingScreen />;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/auth/sign-in" replace />;
   }
 
   // Expand sidenav on hover
@@ -48,6 +54,7 @@ export default function AdminLayout() {
     }
   };
 
+  // Collapse sidenav when mouse leaves
   const handleOnMouseLeave = () => {
     if (onMouseEnter) {
       setMiniSidenav(dispatch, true);
@@ -55,6 +62,28 @@ export default function AdminLayout() {
     }
   };
 
+  // Get first valid role for default route
+  const userRole = roles.find((currentRole) =>
+    Object.prototype.hasOwnProperty.call(DEFAULT_ROUTES, currentRole),
+  );
+
+  const defaultRoute =
+    DEFAULT_ROUTES[userRole] || "/admin/dashboard";
+
+  // Check whether user has access to route
+  const hasRoleAccess = (routeRoles) => {
+    // Public route
+    if (!routeRoles || routeRoles.length === 0) {
+      return true;
+    }
+
+    // User must have at least one matching role
+    return routeRoles.some((routeRole) =>
+      roles.includes(routeRole),
+    );
+  };
+
+  // Generate admin routes
   const getAdminRoutes = (allRoutes) =>
     allRoutes.flatMap((route) => {
       if (route.collapse) {
@@ -62,21 +91,17 @@ export default function AdminLayout() {
       }
 
       if (route.layout === "/admin" && route.route) {
-        const hasAccess = route.roles?.includes(role);
+        const hasAccess = hasRoleAccess(route.roles);
 
         return (
           <Route
             key={route.key}
             path={route.route.replace("/", "")}
             element={
-              isAuthenticated ? (
-                hasAccess ? (
-                  route.component
-                ) : (
-                  <Navigate to="dashboard" replace />
-                )
+              hasAccess ? (
+                route.component
               ) : (
-                <Navigate to="/auth/sign-in" replace />
+                <Navigate to="/admin/access-denied" replace />
               )
             }
           />
@@ -86,37 +111,42 @@ export default function AdminLayout() {
       return [];
     });
 
-  if (!isAuthenticated) {
-    return <Navigate to="/auth/sign-in" replace />;
-  }
-
+  // Filter sidenav routes according to user roles
   const filterRoutesByRole = (allRoutes) =>
     allRoutes
       .map((route) => {
+        // Parent/collapse route
         if (route.collapse) {
           const filteredChildren = filterRoutesByRole(route.collapse);
 
-          // keep parent ONLY if it has visible children
           if (filteredChildren.length > 0) {
-            return { ...route, collapse: filteredChildren };
+            return {
+              ...route,
+              collapse: filteredChildren,
+            };
           }
           return null;
         }
 
-        // normal route
-        if (!route.roles || route.roles.includes(role)) {
+        // Route without role restriction
+        if (!route.roles || route.roles.length === 0) {
+          return route;
+        }
+
+        // Route with role restriction
+        if (hasRoleAccess(route.roles)) {
           return route;
         }
 
         return null;
       })
       .filter(Boolean);
+  const filteredRoutes = filterRoutesByRole(routes);
   return (
     <>
       <Sidenav
         color={sidenavColor}
-        // brand={logo}
-        routes={filterRoutesByRole(routes)}
+        routes={filteredRoutes}
         onMouseEnter={handleOnMouseEnter}
         onMouseLeave={handleOnMouseLeave}
         onChangePassword={() => setChangePasswordOpen(true)}
@@ -133,7 +163,7 @@ export default function AdminLayout() {
           {getAdminRoutes(routes)}
           <Route
             path="*"
-            element={<Navigate to={defaultRoute} replace />} //default route for now
+            element={<Navigate to={defaultRoute} replace />}
           />
         </Routes>
       </div>

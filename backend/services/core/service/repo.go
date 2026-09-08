@@ -31,7 +31,6 @@ type UserRepo interface {
 	AssignUserRole(ctx context.Context, userID int, roleID int) errors.Response
 	ChangePassword(ctx context.Context, password string, userID int) errors.Response
 	UpdateUserPassword(ctx context.Context, userID int, hashedPassword string) errors.Response
-	UpdateUserRole(ctx context.Context, userID int, roleID int) errors.Response
 }
 
 type EmployeeRepo interface {

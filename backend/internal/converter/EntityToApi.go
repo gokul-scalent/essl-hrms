@@ -13,23 +13,28 @@ func UserEntityToUserAPIModelResponse(e entity.User) coreAPIModel.UserResponse {
 	if !e.LastLoginAt.IsZero() {
 		lastLoginAt = &e.LastLoginAt
 	}
-	list := coreAPIModel.UserResponse{
 
+	roles := make([]coreAPIModel.RoleResponse, 0, len(e.Roles))
+
+	for _, role := range e.Roles {
+		roles = append(roles, coreAPIModel.RoleResponse{
+			ID:     role.ID,
+			Name:   role.Name,
+			Code:   role.Code,
+			Status: role.Status,
+		})
+	}
+
+	return coreAPIModel.UserResponse{
 		ID:            e.ID,
 		Email:         e.Email,
 		Status:        e.Status,
 		IsPasswordSet: e.IsPasswordSet,
 		LastLoginAt:   lastLoginAt,
-		Role: coreAPIModel.RoleResponse{
-			ID:     e.Role.ID,
-			Name:   e.Role.Name,
-			Code:   e.Role.Code,
-			Status: e.Role.Status,
-		},
-		EmpID:   e.EmpID,
-		EmpName: e.EmpName,
+		Roles:         roles,
+		EmpID:         e.EmpID,
+		EmpName:       e.EmpName,
 	}
-	return list
 }
 
 func EmployeeEntityToUserAPIModelResponse(e entity.Employee) coreAPIModel.EmployeeResponse {

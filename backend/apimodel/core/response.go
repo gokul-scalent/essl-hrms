@@ -3,21 +3,21 @@ package apimodel
 import "time"
 
 type LoginResponse struct {
-	Email         string `json:"email,omitempty"`
-	Token         string `json:"token"`
-	Role          string `json:"role"`
-	IsPasswordSet string `json:"isPasswordSet"`
+	Email         string   `json:"email,omitempty"`
+	Token         string   `json:"token"`
+	Roles         []string `json:"role"`
+	IsPasswordSet string   `json:"isPasswordSet"`
 }
 
 type UserResponse struct {
-	ID            int          `json:"ID"`
-	Email         string       `json:"email"`
-	Status        string       `json:"status"`
-	IsPasswordSet string       `json:"isPasswordSet,omitempty"`
-	LastLoginAt   *time.Time   `json:"lastLoginAt"`
-	Role          RoleResponse `json:"role,omitempty"`
-	EmpID         string       `json:"empID,omitempty"`
-	EmpName       string       `json:"empName,omitempty"`
+	ID            int            `json:"ID"`
+	Email         string         `json:"email"`
+	Status        string         `json:"status"`
+	IsPasswordSet string         `json:"isPasswordSet,omitempty"`
+	LastLoginAt   *time.Time     `json:"lastLoginAt"`
+	Roles         []RoleResponse `json:"roles,omitempty"`
+	EmpID         string         `json:"empID,omitempty"`
+	EmpName       string         `json:"empName,omitempty"`
 }
 
 type UserListResponse struct {

@@ -103,56 +103,95 @@ func (r *LoginRepoImpl) UpdateUserSessionToken(ctx context.Context, userID int, 
 }
 
 // Get User Role
-func (r *LoginRepoImpl) GetUserRoleForLogin(ctx context.Context, userID int) (*entity.User, errors.Response) {
+func (r *LoginRepoImpl) GetUserRoleForLogin(
+	ctx context.Context,
+	userID int,
+) (*entity.User, errors.Response) {
+
 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
+
 	log.Info("core>repo>login: GetUserRoleForLogin started", reqID)
 	log.Info(
-		"core>repo>login: GetUserRoleForLogin started for userID "+
-			strconv.Itoa(userID),
+		"core>repo>login: GetUserRoleForLogin started for userID "+strconv.Itoa(userID),
 		reqID,
 	)
 
-	type tempUserRoleModel struct {
-		UserID   int    `db:"user_id"`
-		RoleID   int    `db:"role_id"`
-		RoleCode string `db:"role_code"`
-		RoleName string `db:"role_name"`
+	type UserRoleModel struct {
+		UserID     int    `db:"user_id"`
+		RoleID     int    `db:"role_id"`
+		RoleCode   string `db:"role_code"`
+		RoleName   string `db:"role_name"`
+		RoleStatus string `db:"role_status"`
 	}
 
-	tempUserRole := tempUserRoleModel{}
+	var roleModels []UserRoleModel
 
 	query := `
-		SELECT 
+		SELECT
 			ur.user_id,
 			ur.role_id,
 			r.code AS role_code,
-			r.name AS role_name
+			r.name AS role_name,
+			r.status AS role_status
 		FROM user_roles ur
 		INNER JOIN roles r ON r.id = ur.role_id
 		WHERE ur.user_id = ?
-		AND ur.deleted_at IS NULL
-		AND r.deleted_at IS NULL
-		LIMIT 1
+		  AND ur.deleted_at IS NULL
+		  AND r.deleted_at IS NULL
+		  AND r.status = 'ACTIVE'
+		ORDER BY ur.role_id
 	`
 
-	err := r.db.Get(&tempUserRole, query, userID)
+	err := r.db.SelectContext(ctx, &roleModels, query, userID)
+
 	if err != nil {
-		log.Error(err.Error(), reqID)
-		if err == sql.ErrNoRows {
-			return nil, errors.ResponseNotFoundError("Role not found.")
-		}
-		return nil, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+		log.Error(
+			"core>repo>login: failed to get user roles: "+err.Error(),
+			reqID,
+		)
+
+		return nil, errors.ResponseInternalServerError(
+			errors.INTERNAL_SERVER_ERROR,
+		)
 	}
 
-	userEntity := entity.User{
-		ID: tempUserRole.UserID,
-		Role: entity.Role{
-			ID:   tempUserRole.RoleID,
-			Code: tempUserRole.RoleCode,
-			Name: tempUserRole.RoleName,
-		},
+	log.Info(
+		"core>repo>login: roles found: "+strconv.Itoa(len(roleModels)),
+		reqID,
+	)
+
+	if len(roleModels) == 0 {
+		return nil, errors.ResponseUnauthorizedError(
+			"User has no active role assigned",
+		)
 	}
 
-	log.Info("core>repo>login: GetUserRoleForLogin completed", reqID)
-	return &userEntity, nil
+	roleIDs := make([]int, 0, len(roleModels))
+	roles := make([]entity.Role, 0, len(roleModels))
+
+	for _, roleModel := range roleModels {
+
+		log.Info(
+			"core>repo>login: role found - ID: "+
+				strconv.Itoa(roleModel.RoleID)+
+				", Code: "+roleModel.RoleCode+
+				", Name: "+roleModel.RoleName,
+			reqID,
+		)
+
+		roleIDs = append(roleIDs, roleModel.RoleID)
+
+		roles = append(roles, entity.Role{
+			ID:     roleModel.RoleID,
+			Code:   roleModel.RoleCode,
+			Name:   roleModel.RoleName,
+			Status: roleModel.RoleStatus,
+		})
+	}
+
+	return &entity.User{
+		ID:      userID,
+		RoleIDs: roleIDs,
+		Roles:   roles,
+	}, nil
 }

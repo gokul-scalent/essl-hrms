@@ -316,16 +316,29 @@ func (r *UserRepoImpl) GetUserDetails(ctx context.Context, selectColumns []strin
 }
 
 func (r *UserRepoImpl) AssignUserRole(ctx context.Context, userID int, roleID int) errors.Response {
+	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
+	log.Info("core>repo>user: AssignUserRole started for user id "+strconv.Itoa(userID)+" role id "+strconv.Itoa(roleID), reqID)
 	query := `
-        INSERT INTO user_roles (user_id, role_id)
-        VALUES (?, ?)
-    `
+		INSERT INTO user_roles (
+			user_id,
+			role_id
+		)
+		VALUES (?, ?)
+	`
+
 	_, err := r.db.ExecContext(ctx, query, userID, roleID)
 	if err != nil {
-		return errors.ResponseInternalServerError(
-			errors.INTERNAL_SERVER_ERROR,
-		)
+		// Same user + same role already exists
+		if mysqlErr, ok := err.(*mysql.MySQLError); ok &&
+			mysqlErr.Number == 1062 {
+			log.Error("user already has this role", reqID)
+			return errors.ResponseBadRequestError("User already has this role")
+		}
+
+		log.Error("failed to assign user role: "+err.Error(), reqID)
+		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
 	}
+	log.Info("core>repo>user: AssignUserRole completed for user id "+strconv.Itoa(userID), reqID)
 	return nil
 }
 
@@ -394,41 +407,5 @@ func (r *UserRepoImpl) UpdateUserPassword(ctx context.Context, userID int, hashe
 	if rowsAffected == 0 {
 		return errors.ResponseNotFoundError(errors.NOT_FOUND_ERROR)
 	}
-	return nil
-}
-
-func (r *UserRepoImpl) UpdateUserRole(ctx context.Context, userID int, roleID int) errors.Response {
-
-	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
-
-	log.Info("core>repo>user: UpdateUserRole started for user id "+strconv.Itoa(userID), reqID)
-
-	query := `
-        UPDATE user_roles
-        SET role_id = ?
-        WHERE user_id = ?
-        AND deleted_at IS NULL
-    `
-
-	result, err := r.db.ExecContext(ctx, query, roleID, userID)
-
-	if err != nil {
-		log.Error("failed to update user role: "+err.Error(), reqID)
-		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		log.Error("failed to get affected rows: "+err.Error(), reqID)
-
-		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
-	}
-
-	if rowsAffected == 0 {
-		log.Error("no active role found for user id "+strconv.Itoa(userID), reqID)
-
-		return errors.ResponseNotFoundError(errors.NOT_FOUND_ERROR)
-	}
-	log.Info("core>repo>user: UpdateUserRole completed for user id "+strconv.Itoa(userID), reqID)
 	return nil
 }

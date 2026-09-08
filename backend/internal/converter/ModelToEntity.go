@@ -9,7 +9,6 @@ import (
 
 func UserModelToUserEntity(m model.User) entity.User {
 	e := entity.User{
-
 		ID:            m.ID,
 		Email:         m.Email.String,
 		Password:      m.Password.String,
@@ -20,15 +19,16 @@ func UserModelToUserEntity(m model.User) entity.User {
 		CreatedAt:     m.CreatedAt.Time,
 		UpdatedAt:     m.UpdatedAt.Time,
 		DeletedAt:     m.DeletedAt.Time,
-		Role: entity.Role{
-			ID:     int(m.RoleID.Int64),
-			Name:   m.RoleName.String,
-			Code:   m.RoleCode.String,
-			Status: m.RoleStatus.String,
-		},
-		EmpID:   m.EmpID.String,
-		EmpName: m.EmpName.String,
+		EmpID:         m.EmpID.String,
+		EmpName:       m.EmpName.String,
 	}
+
+	if m.RoleID.Valid {
+		e.RoleIDs = []int{
+			int(m.RoleID.Int64),
+		}
+	}
+
 	return e
 }
 

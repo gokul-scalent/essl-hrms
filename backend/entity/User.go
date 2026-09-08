@@ -7,7 +7,8 @@ type User struct {
 	Email         string
 	Password      string
 	IsPasswordSet string
-	Role          Role
+	RoleIDs       []int
+	Roles         []Role
 	Status        string
 	LastLoginAt   time.Time
 	SessionToken  string
