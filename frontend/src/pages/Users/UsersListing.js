@@ -155,6 +155,7 @@ function UsersListing() {
       empName: item?.empName || "-",
       roles: item?.roles || [],
       status: item?.status || "INACTIVE",
+      city: item?.city || "-",
       lastLoginAt: item?.lastLoginAt || null,
     })) || [];
 

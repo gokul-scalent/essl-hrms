@@ -12,6 +12,7 @@ type User struct {
 	RoleNames     []string
 	RoleStatus    []string
 	Roles         []Role
+	City          string
 	Status        string
 	LastLoginAt   time.Time
 	SessionToken  string

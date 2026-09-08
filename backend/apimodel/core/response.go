@@ -12,6 +12,7 @@ type LoginResponse struct {
 type UserResponse struct {
 	ID            int            `json:"ID"`
 	Email         string         `json:"email"`
+	City          string         `json:"city"`
 	Status        string         `json:"status"`
 	IsPasswordSet string         `json:"isPasswordSet,omitempty"`
 	LastLoginAt   *time.Time     `json:"lastLoginAt"`

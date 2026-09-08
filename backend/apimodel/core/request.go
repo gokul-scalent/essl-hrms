@@ -12,6 +12,7 @@ type LoginRequest struct {
 type CreateUser struct {
 	Email   string `json:"email" binding:"required,email"`
 	EmpName string `json:"empName" binding:"required"`
+	City    string `json:"city" binding:"required,oneof=NASHIK PUNE"`
 	Status  string `json:"status" binding:"omitempty,oneof=ACTIVE INACTIVE"`
 	RoleIDs []int  `json:"roleIDs" binding:"required"`
 }

@@ -35,9 +35,9 @@ func (r *UserRepoImpl) CreateUser(ctx context.Context, user entity.User) (int, e
 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
 	log.Info("core>repo>user: CreateUser started", reqID)
 
-	query := "INSERT INTO users (email, empname, password, is_password_set, status, session_token) VALUES(?, ?, ?, ?, ? , ?)"
+	query := "INSERT INTO users (email, empname, city, password, is_password_set, status, session_token) VALUES(?, ?, ?, ?, ? , ? ,? )"
 
-	result, err := r.db.Exec(query, user.Email, user.EmpName, user.Password, user.IsPasswordSet, user.Status, user.SessionToken)
+	result, err := r.db.Exec(query, user.Email, user.EmpName, user.City, user.Password, user.IsPasswordSet, user.Status, user.SessionToken)
 	if err != nil {
 		log.Error(err.Error(), reqID)
 		// Active user with same email.then show email already exits
@@ -73,6 +73,12 @@ func (r *UserRepoImpl) PartialUpdateUser(ctx context.Context, user entity.User) 
 	if user.EmpName != "" {
 		columns = append(columns, "empname=?")
 		args = append(args, user.EmpName)
+	}
+
+	// Update city
+	if user.City != "" {
+		columns = append(columns, "city=?")
+		args = append(args, user.City)
 	}
 
 	// Update last login
@@ -129,9 +135,9 @@ func (r *UserRepoImpl) UpdateUser(ctx context.Context, user entity.User) errors.
 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
 	log.Info("core>repo>user: UpdateUser started for user id "+strconv.Itoa(user.ID), reqID)
 
-	query := "UPDATE users SET email=?, password=?, status=?, last_login_at=?, session_token=? WHERE id=?  	AND deleted_at IS NULL"
+	query := "UPDATE users SET email=?,empname =?,  city =? ,password=?, status=?, last_login_at=?, session_token=? WHERE id=?  	AND deleted_at IS NULL"
 
-	_, err := r.db.Exec(query, user.Email, user.Password, user.Status, user.LastLoginAt, user.SessionToken, user.ID)
+	_, err := r.db.Exec(query, user.Email, user.EmpName, user.City, user.Password, user.Status, user.LastLoginAt, user.SessionToken, user.ID)
 	if err != nil {
 		log.Error(err.Error(), reqID)
 		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
@@ -196,7 +202,7 @@ func (r *UserRepoImpl) GetUserbyID(ctx context.Context, userID int) (entity.User
 
 			e.emp_id AS emp_id,
 			COALESCE(e.emp_name, u.empname) AS emp_name,
-
+			u.city AS city,
 			u.last_login_at,
 			u.session_token,
 			u.created_at,
@@ -229,6 +235,7 @@ func (r *UserRepoImpl) GetUserbyID(ctx context.Context, userID int) (entity.User
 			u.status,
 			e.emp_id,
 			e.emp_name,
+			u.city,
 			u.last_login_at,
 			u.session_token,
 			u.created_at,
@@ -287,7 +294,7 @@ func (r *UserRepoImpl) ListUser(ctx context.Context, filter *filters.ListFilter)
 
 			e.emp_id AS emp_id,
 			COALESCE(e.emp_name, u.empname) AS emp_name,
-
+            u.city AS city,
 			u.last_login_at,
 			u.session_token,
 			u.created_at,
@@ -321,9 +328,9 @@ func (r *UserRepoImpl) ListUser(ctx context.Context, filter *filters.ListFilter)
 	if filter.SearchString != "" {
 		search := "%" + strings.TrimSpace(filter.SearchString) + "%"
 
-		whereStr = append(whereStr, "(u.email LIKE ? OR e.emp_name LIKE ? OR e.emp_id LIKE ?)")
+		whereStr = append(whereStr, "(u.email LIKE ? OR e.emp_name LIKE ? OR u.empname LIKE ? OR e.emp_id LIKE ? OR u.city LIKE ?)")
 
-		args = append(args, search, search, search)
+		args = append(args, search, search, search, search)
 	}
 
 	// Soft delete
@@ -343,6 +350,7 @@ func (r *UserRepoImpl) ListUser(ctx context.Context, filter *filters.ListFilter)
 			u.status,
 			e.emp_id,
 			e.emp_name,
+			u.city,
 			u.last_login_at,
 			u.session_token,
 			u.created_at,

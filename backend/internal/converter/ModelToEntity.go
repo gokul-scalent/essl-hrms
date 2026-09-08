@@ -23,6 +23,7 @@ func UserModelToUserEntity(m model.User) entity.User {
 		DeletedAt:     m.DeletedAt.Time,
 		EmpID:         m.EmpID.String,
 		EmpName:       m.EmpName.String,
+		City:          m.City.String,
 	}
 
 	// Role IDs
