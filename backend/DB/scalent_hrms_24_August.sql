@@ -100,6 +100,39 @@ LOCK TABLES `employees` WRITE;
 UNLOCK TABLES;
 
 --
+-- Table structure for table `attendance_working_hours`
+--
+
+DROP TABLE IF EXISTS `attendance_working_hours`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `attendance_working_hours` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `emp_id` varchar(64) NOT NULL,
+  `log_date` date NOT NULL,
+  `check_in_time` datetime DEFAULT NULL,
+  `check_out_time` datetime DEFAULT NULL,
+  `working_hours` varchar(8) NOT NULL,
+  `out_of_office_hours` varchar(8) NOT NULL,
+  `status` enum('PRESENT','ABSENT') NOT NULL DEFAULT 'ABSENT',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_attendance_working_hours_emp_date` (`emp_id`,`log_date`),
+  KEY `idx_attendance_working_hours_date` (`log_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `attendance_working_hours`
+--
+
+LOCK TABLES `attendance_working_hours` WRITE;
+/*!40000 ALTER TABLE `attendance_working_hours` DISABLE KEYS */;
+/*!40000 ALTER TABLE `attendance_working_hours` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `role_accesses`
 --
 

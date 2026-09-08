@@ -1,7 +1,9 @@
 package web
 
 import (
+	"context"
 	"io"
+	"time"
 
 	"github.com/scalent.io/scalent-hrms/internal/middleware"
 	"github.com/scalent.io/scalent-hrms/pkg/log"
@@ -19,6 +21,7 @@ type CoreHandlerRegistryOptions struct {
 	LoginService         coreService.LoginService
 	EmployeeService      coreService.EmployeeService
 	AttendanceLogService coreService.AttendanceLogService
+	CronService          coreService.CronService
 }
 
 type CoreHandlerRegistry struct {
@@ -38,9 +41,31 @@ func (h *CoreHandlerRegistry) StartServer() error {
 		log.Print(err)
 	}
 
+	h.startDailyWorkingHoursCron()
+
 	log.Info("Server Started Successfully", "")
 	router.Run(h.Options.Config.Port)
 	return nil
+}
+
+func (h *CoreHandlerRegistry) startDailyWorkingHoursCron() {
+	go func() {
+		for {
+			now := time.Now()
+			nextMidnight := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
+
+			time.Sleep(time.Until(nextMidnight))
+
+			targetDate := nextMidnight.AddDate(0, 0, -1)
+			_, errResp := h.Options.CronService.CalculateWorkingHours(context.Background(), targetDate)
+			if errResp != nil {
+				log.Error("core>web>cron scheduler: "+errResp.Error(), "")
+				continue
+			}
+
+			log.Info("core>web>cron scheduler: working-hours summary calculated for "+targetDate.Format("2006-01-02"), "")
+		}
+	}()
 }
 
 func (h CoreHandlerRegistry) registerRoutes() (*gin.Engine, error) {
@@ -56,10 +81,15 @@ func (h CoreHandlerRegistry) registerRoutes() (*gin.Engine, error) {
 	coreRouter.POST("/login", h.LoginHandler)
 	coreRouter.GET("/home", h.HomeHandler)
 
-	coreRouter.Use(h.Options.Middleware.Access())
-	coreRouter.POST("/logout", h.LogOutHandler)
+	// Keep cron endpoint public (no authorization middleware).
+	cronRouter := coreRouter.Group("/cron")
+	cronRouter.POST("/calculate-working-hours", h.CalculateWorkingHoursHandler)
 
-	userRouter := coreRouter.Group("/user")
+	protectedRouter := coreRouter.Group("")
+	protectedRouter.Use(h.Options.Middleware.Access())
+	protectedRouter.POST("/logout", h.LogOutHandler)
+
+	userRouter := protectedRouter.Group("/user")
 	userRouter.POST("/", h.CreateUserHandler)
 	userRouter.PATCH("/:id", h.PartialUpdateUserHandler)
 	userRouter.PUT("/:id", h.UpdateUserHandler)
@@ -72,7 +102,7 @@ func (h CoreHandlerRegistry) registerRoutes() (*gin.Engine, error) {
 	//---UserService  coreService.UserService
 	//---delete these lines after copy
 
-	employeeRouter := coreRouter.Group("/employee")
+	employeeRouter := protectedRouter.Group("/employee")
 	employeeRouter.POST("/", h.CreateEmployeeHandler)
 	employeeRouter.PATCH("/:id", h.PartialUpdateEmployeeHandler)
 	employeeRouter.PUT("/:id", h.UpdateEmployeeHandler)
@@ -84,14 +114,18 @@ func (h CoreHandlerRegistry) registerRoutes() (*gin.Engine, error) {
 	//---EmployeeService  coreService.EmployeeService
 	//---delete these lines after copy
 
-	attendanceLogRouter := coreRouter.Group("/attendance-log")
+	attendanceLogRouter := protectedRouter.Group("/attendance-log")
 	attendanceLogRouter.POST("/", h.CreateAttendanceLogHandler)
 	attendanceLogRouter.PATCH("/:id", h.PartialUpdateAttendanceLogHandler)
 	attendanceLogRouter.PUT("/:id", h.UpdateAttendanceLogHandler)
 	attendanceLogRouter.GET("/:id", h.GetAttendanceLogbyIDHandler)
 	attendanceLogRouter.GET("/list", h.ListAttendanceLogHandler)
-	attendanceLogRouter.GET("/daily", h.ListDailyAttendanceLogHandler)
+	//attendanceLogRouter.GET("/daily", h.ListDailyAttendanceLogHandler)
 
+	attendanceLogRouter.GET("/daily", h.GetDailyAttendanceHandler)
+
+	biometricDeviceRouter := protectedRouter.Group("/device")
+	biometricDeviceRouter.POST("/add-user", h.CreateUserOnDeviceHandler)
 	//---add the following line above in CoreHandlerRegistryOptions struct
 	//---AttendanceLogService  coreService.AttendanceLogService
 	//---delete these lines after copy

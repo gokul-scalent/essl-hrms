@@ -4,7 +4,6 @@ import (
 	"context"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/scalent.io/scalent-hrms/entity"
@@ -254,18 +253,21 @@ func (r *AttendanceLogRepoImpl) GetAttendanceLogDetails(ctx context.Context, sel
 	return &attendanceLogEntity, nil
 }
 
-func (r *AttendanceLogRepoImpl) ListDailyAttendanceLog(ctx context.Context, filter *filters.ListFilter, empID, fromDate, toDate string) (int, []model.DailyAttendanceLog, errors.Response) {
+// func (r *AttendanceLogRepoImpl) ListDailyAttendanceByHoursLog(ctx context.Context, filter *filters.ListFilter, empID, targetDate string) (int, []model.DailyAttendanceLog, errors.Response) {
+
+// 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
+// 	log.Info("core>repo>attendanceLog: ListDailyAttendanceLog started", reqID)
+
+// }
+
+func (r *AttendanceLogRepoImpl) ListDailyAttendanceByHoursLog(ctx context.Context, filter *filters.ListFilter, empID, targetDate string) (int, []model.DailyAttendanceLogWorkingHours, errors.Response) {
 
 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
 	log.Info("core>repo>attendanceLog: ListDailyAttendanceLog started", reqID)
 
-	if fromDate == "" {
-		fromDate = time.Now().Format("2006-01-02")
-	}
-
-	if toDate == "" {
-		toDate = fromDate
-	}
+	// if fromDate == "" {
+	// 	fromDate = time.Now().Format("2006-01-02")
+	// }
 
 	countQuery := `
 		SELECT COUNT(*)
@@ -311,8 +313,11 @@ func (r *AttendanceLogRepoImpl) ListDailyAttendanceLog(ctx context.Context, filt
 			e.emp_id,
 			e.emp_name,
 			CAST(? AS DATE) AS log_date,
-			al.timestamp,
-			al.punch
+			al.log_date AS log_date,
+			al.check_in_time,
+			al.check_out_time,
+			al.working_hours,
+			al.status
 		FROM (
 			SELECT
 				emp_id,
@@ -321,7 +326,7 @@ func (r *AttendanceLogRepoImpl) ListDailyAttendanceLog(ctx context.Context, filt
 	`
 
 	args := []interface{}{
-		fromDate,
+		targetDate,
 	}
 
 	employeeWhere := []string{}
@@ -351,19 +356,18 @@ func (r *AttendanceLogRepoImpl) ListDailyAttendanceLog(ctx context.Context, filt
 			LIMIT ?, ?
 		) e
 
-		LEFT JOIN attendance_logs al
+		LEFT JOIN attendance_working_hours al
 			ON al.emp_id = e.emp_id
-			AND DATE(al.timestamp) BETWEEN ? AND ?
-			AND al.device_name IN ('Front Entry', 'Back Entry')
+			AND DATE(al.log_date) =?
 
 		ORDER BY
 			e.emp_id ASC,
-			al.timestamp ASC
+			al.log_date ASC
 	`
 
-	args = append(args, offset, commonConstants.NO_OF_RECORDS_PER_PAGE, fromDate, toDate)
+	args = append(args, offset, commonConstants.NO_OF_RECORDS_PER_PAGE, targetDate)
 
-	var attendanceLogs []model.DailyAttendanceLog
+	var attendanceLogs []model.DailyAttendanceLogWorkingHours
 
 	err = r.db.Select(&attendanceLogs, query, args...)
 	if err != nil {

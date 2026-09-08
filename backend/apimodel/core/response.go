@@ -1,6 +1,10 @@
 package apimodel
 
-import "time"
+import (
+	"time"
+
+	"github.com/scalent.io/scalent-hrms/entity"
+)
 
 type LoginResponse struct {
 	Email         string `json:"email,omitempty"`
@@ -78,10 +82,26 @@ type DailyAttendanceLogResponse struct {
 	Status       string                    `json:"status"`
 }
 
+type DailyAttendanceHoursLogResponse struct {
+	EmpID        string `json:"empID"`
+	EmpName      string `json:"empName"`
+	Date         string `json:"date"`
+	CheckIN      string `json:"checkIn"`
+	CheckOut     string `json:"checkOut"`
+	WorkingHours string `json:"workingHours"`
+	Status       string `json:"status"`
+}
+
 type DailyAttendanceLogListResponse struct {
 	TotalRecords       int                          `json:"totalRecords"`
 	NoOfRecordsPerPage int                          `json:"noOfRecordsPerPage"`
 	DailyAttendanceLog []DailyAttendanceLogResponse `json:"dailyAttendanceLog"`
+}
+
+type DailyAttendanceLogHoursListResponse struct {
+	TotalRecords       int                              `json:"totalRecords"`
+	NoOfRecordsPerPage int                              `json:"noOfRecordsPerPage"`
+	DailyAttendanceLog []entity.DailyAttendanceLogHours `json:"dailyAttendanceLog"`
 }
 
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------

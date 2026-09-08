@@ -8,6 +8,7 @@ import (
 
 	"github.com/scalent.io/scalent-hrms/entity"
 	"github.com/scalent.io/scalent-hrms/entity/filters"
+	"github.com/scalent.io/scalent-hrms/internal/converter"
 	"github.com/scalent.io/scalent-hrms/model"
 	mailoraContext "github.com/scalent.io/scalent-hrms/pkg/context"
 	"github.com/scalent.io/scalent-hrms/pkg/errors"
@@ -95,25 +96,40 @@ func (s *AttendanceLogServiceImpl) ListAttendanceLog(ctx context.Context, filter
 	return totalRecords, attendanceLogsEntity, nil
 }
 
-func (s *AttendanceLogServiceImpl) ListDailyAttendanceLog(ctx context.Context, filter *filters.ListFilter, empID, fromDate, toDate string) (int, []entity.DailyAttendanceLog, errors.Response) {
+// func (s *AttendanceLogServiceImpl) ListDailyAttendanceLog(ctx context.Context, filter *filters.ListFilter, empID, fromDate, toDate string) (int, []entity.DailyAttendanceLog, errors.Response) {
+// 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
+
+// 	log.Info("core>service>attendanceLog: ListDailyAttendanceLog started", reqID)
+
+// 	count, attendanceLogs, errResp := s.attendanceLogRepo.ListDailyAttendanceLog(ctx, filter, empID, fromDate, toDate)
+
+// 	if errResp != nil {
+// 		log.Error(errResp.Error(), reqID)
+// 		return 0, nil, errResp
+// 	}
+
+// 	dailyAttendance := s.CalculateDailyAttendance(attendanceLogs)
+
+//		log.Info("core>service>attendanceLog: ListDailyAttendanceLog completed", reqID)
+//		return count, dailyAttendance, nil
+//	}
+func (s *AttendanceLogServiceImpl) ListDailyAttendanceByHoursLog(ctx context.Context, filter *filters.ListFilter, empID, targetDate string) (int, []entity.DailyAttendanceLogHours, errors.Response) {
 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
 
-	log.Info("core>service>attendanceLog: ListDailyAttendanceLog started", reqID)
+	log.Info("core>service>attendanceLog: ListDailyAttendanceByHoursLog started", reqID)
 
-	count, attendanceLogs, errResp :=
-		s.attendanceLogRepo.ListDailyAttendanceLog(ctx, filter, empID, fromDate, toDate)
+	count, attendanceLogs, errResp := s.attendanceLogRepo.ListDailyAttendanceByHoursLog(ctx, filter, empID, targetDate)
 
 	if errResp != nil {
 		log.Error(errResp.Error(), reqID)
 		return 0, nil, errResp
 	}
+	dailyAttendance := converter.AllAttendanceLogHoursModelToAttendanceLogHoursEntity(attendanceLogs)
+	//dailyAttendance := s.CalculateDailyAttendanceByHours(attendanceLogs)
 
-	dailyAttendance := s.CalculateDailyAttendance(attendanceLogs)
-
-	log.Info("core>service>attendanceLog: ListDailyAttendanceLog completed", reqID)
+	log.Info("core>service>attendanceLog: ListDailyAttendanceByHoursLog completed", reqID)
 	return count, dailyAttendance, nil
 }
-
 func (s *AttendanceLogServiceImpl) CalculateDailyAttendance(logs []model.DailyAttendanceLog) []entity.DailyAttendanceLog {
 
 	// If there are no attendance punches, return an empty result.
@@ -341,7 +357,7 @@ func (s *AttendanceLogServiceImpl) CalculateDailyAttendance(logs []model.DailyAt
 						},
 					)
 
-					dailyLog.Status = "INCOMPLETE"
+					dailyLog.Status = "PRESENT"
 				}
 
 				// Last punch is CHECK_OUT and was not paired. Keep CHECK_IN as NULL.
@@ -357,7 +373,7 @@ func (s *AttendanceLogServiceImpl) CalculateDailyAttendance(logs []model.DailyAt
 						},
 					)
 
-					dailyLog.Status = "INCOMPLETE"
+					dailyLog.Status = "PRESENT"
 				}
 			}
 		}

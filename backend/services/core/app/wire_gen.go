@@ -79,6 +79,14 @@ func initServer(config2 *CoreConfig) (*web.CoreHandlerRegistry, error) {
 	if err != nil {
 		return nil, err
 	}
+	cronRepoImpl, err := repo.NewCronRepoImpl(db)
+	if err != nil {
+		return nil, err
+	}
+	cronServiceImpl, err := service.NewCronServiceImpl(cronRepoImpl)
+	if err != nil {
+		return nil, err
+	}
 	coreHandlerRegistryOptions := web.CoreHandlerRegistryOptions{
 		Config:               serverConfig,
 		Middleware:           middlewareImpl,
@@ -87,6 +95,7 @@ func initServer(config2 *CoreConfig) (*web.CoreHandlerRegistry, error) {
 		LoginService:         loginServiceImpl,
 		EmployeeService:      employeeServiceImpl,
 		AttendanceLogService: attendanceLogServiceImpl,
+		CronService:          cronServiceImpl,
 	}
 	coreHandlerRegistry := web.NewCoreHandlerRegistry(coreHandlerRegistryOptions)
 	return coreHandlerRegistry, nil
@@ -94,4 +103,4 @@ func initServer(config2 *CoreConfig) (*web.CoreHandlerRegistry, error) {
 
 // wire.go:
 
-var CoreModuleSet = wire.NewSet(wire.FieldsOf(new(*CoreConfig), "server", "db", "Reacher"), NewCacheConfig, cache.NewRedisInstance, casbin.InitCasbin, sqlx.NewDBConn, NewServiceConfig, reacher.NewReacherClient, wire.Struct(new(web.CoreHandlerRegistryOptions), "*"), web.NewCoreHandlerRegistry, auth.NewAuthImpl, middleware.NewMiddlewareImpl, wire.Bind(new(middleware.Middleware), new(*middleware.MiddlewareImpl)), repo.NewHomeRepoImpl, wire.Bind(new(service.HomeRepo), new(*repo.HomeRepoImpl)), service.NewHomeServiceImpl, wire.Bind(new(service.HomeService), new(*service.HomeServiceImpl)), repo.NewUserRepoImpl, wire.Bind(new(service.UserRepo), new(*repo.UserRepoImpl)), service.NewUserServiceImpl, wire.Bind(new(service.UserService), new(*service.UserServiceImpl)), repo.NewLoginRepoImpl, wire.Bind(new(service.LoginRepo), new(*repo.LoginRepoImpl)), service.NewLoginServiceImpl, wire.Bind(new(service.LoginService), new(*service.LoginServiceImpl)), repo.NewEmployeeRepoImpl, wire.Bind(new(service.EmployeeRepo), new(*repo.EmployeeRepoImpl)), service.NewEmployeeServiceImpl, wire.Bind(new(service.EmployeeService), new(*service.EmployeeServiceImpl)), repo.NewAttendanceLogRepoImpl, wire.Bind(new(service.AttendanceLogRepo), new(*repo.AttendanceLogRepoImpl)), service.NewAttendanceLogServiceImpl, wire.Bind(new(service.AttendanceLogService), new(*service.AttendanceLogServiceImpl)))
+var CoreModuleSet = wire.NewSet(wire.FieldsOf(new(*CoreConfig), "server", "db", "Reacher"), NewCacheConfig, cache.NewRedisInstance, casbin.InitCasbin, sqlx.NewDBConn, NewServiceConfig, reacher.NewReacherClient, wire.Struct(new(web.CoreHandlerRegistryOptions), "*"), web.NewCoreHandlerRegistry, auth.NewAuthImpl, middleware.NewMiddlewareImpl, wire.Bind(new(middleware.Middleware), new(*middleware.MiddlewareImpl)), repo.NewHomeRepoImpl, wire.Bind(new(service.HomeRepo), new(*repo.HomeRepoImpl)), service.NewHomeServiceImpl, wire.Bind(new(service.HomeService), new(*service.HomeServiceImpl)), repo.NewUserRepoImpl, wire.Bind(new(service.UserRepo), new(*repo.UserRepoImpl)), service.NewUserServiceImpl, wire.Bind(new(service.UserService), new(*service.UserServiceImpl)), repo.NewLoginRepoImpl, wire.Bind(new(service.LoginRepo), new(*repo.LoginRepoImpl)), service.NewLoginServiceImpl, wire.Bind(new(service.LoginService), new(*service.LoginServiceImpl)), repo.NewEmployeeRepoImpl, wire.Bind(new(service.EmployeeRepo), new(*repo.EmployeeRepoImpl)), service.NewEmployeeServiceImpl, wire.Bind(new(service.EmployeeService), new(*service.EmployeeServiceImpl)), repo.NewAttendanceLogRepoImpl, wire.Bind(new(service.AttendanceLogRepo), new(*repo.AttendanceLogRepoImpl)), service.NewAttendanceLogServiceImpl, wire.Bind(new(service.AttendanceLogService), new(*service.AttendanceLogServiceImpl)), repo.NewCronRepoImpl, wire.Bind(new(service.CronRepo), new(*repo.CronRepoImpl)), service.NewCronServiceImpl, wire.Bind(new(service.CronService), new(*service.CronServiceImpl)))

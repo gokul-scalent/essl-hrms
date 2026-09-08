@@ -16,6 +16,7 @@ type AttendanceLog struct {
 	AttendanceState string       `db:"attendance_state"`
 	DeviceName      string       `db:"device_name"`
 	CreatedAt       sql.NullTime `db:"created_at"`
+	Synthesized     bool         `db:"synthesized"`
 }
 
 var AttendanceLogModelMap = map[string]FieldStruct{
@@ -29,6 +30,7 @@ var AttendanceLogModelMap = map[string]FieldStruct{
 	"AttendanceState": {MySQLDatatype: "varchar", FieldName: "attendance_state"},
 	"DeviceName":      {MySQLDatatype: "varchar", FieldName: "device_name"},
 	"CreatedAt":       {MySQLDatatype: "timestamp", FieldName: "created_at"},
+	"Synthesized":     {MySQLDatatype: "bool", FieldName: "synthesized"},
 }
 
 type DailyAttendanceLog struct {
@@ -37,4 +39,14 @@ type DailyAttendanceLog struct {
 	LogDate   time.Time     `db:"log_date"`
 	Timestamp sql.NullTime  `db:"timestamp"`
 	Punch     sql.NullInt64 `db:"punch"`
+}
+
+type DailyAttendanceLogWorkingHours struct {
+	EmpID        string       `db:"emp_id"`
+	EmpName      string       `db:"emp_name"`
+	LogDate      time.Time    `db:"log_date"`
+	CheckInTime  sql.NullTime `db:"check_in_time"`
+	CheckOutTime sql.NullTime `db:"check_out_time"`
+	WorkingHours string       `db:"working_hours"`
+	Status       string       `db:"status"`
 }

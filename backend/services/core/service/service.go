@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/scalent.io/scalent-hrms/entity"
 	"github.com/scalent.io/scalent-hrms/entity/filters"
@@ -42,7 +43,12 @@ type AttendanceLogService interface {
 	UpdateAttendanceLog(ctx context.Context, attendanceLog entity.AttendanceLog) errors.Response
 	GetAttendanceLogbyID(ctx context.Context, attendanceLogID int) (entity.AttendanceLog, errors.Response)
 	ListAttendanceLog(ctx context.Context, filter *filters.ListFilter) (int, []entity.AttendanceLog, errors.Response)
-	ListDailyAttendanceLog(ctx context.Context, filter *filters.ListFilter, empID, fromDate, toDate string) (int, []entity.DailyAttendanceLog, errors.Response)
+	//	ListDailyAttendanceLog(ctx context.Context, filter *filters.ListFilter, empID, fromDate, toDate string) (int, []entity.DailyAttendanceLog, errors.Response)
+	ListDailyAttendanceByHoursLog(ctx context.Context, filter *filters.ListFilter, empID, targetDate string) (int, []entity.DailyAttendanceLogHours, errors.Response)
+}
+
+type CronService interface {
+	CalculateWorkingHours(ctx context.Context, targetDate time.Time) ([]entity.WorkingHoursSummary, errors.Response)
 }
 
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------

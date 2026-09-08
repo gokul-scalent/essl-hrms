@@ -200,39 +200,91 @@ func (h CoreHandlerRegistry) ListAttendanceLogHandler(c *gin.Context) {
 	httpUtils.DataResponse(c, http.StatusOK, "attendance logs fetched successfully", attendanceLogResponse)
 }
 
-func (h CoreHandlerRegistry) ListDailyAttendanceLogHandler(c *gin.Context) {
+// func (h CoreHandlerRegistry) ListDailyAttendanceLogHandler(c *gin.Context) {
+// 	reqID, _ := context.GetRequestIDFromContext(c.Request.Context())
+// 	log.Info("core>web>attendanceLog: daily attendance log list started", reqID)
+
+// 	queryParams := c.Request.URL.Query()
+
+// 	paramPageValue := queryParams.Get("page")
+// 	pageNo, _ := strconv.Atoi(paramPageValue)
+
+// 	empID := strings.TrimSpace(queryParams.Get("empID"))
+// 	fromDate := strings.TrimSpace(queryParams.Get("fromDate"))
+// 	toDate := strings.TrimSpace(queryParams.Get("toDate"))
+// 	searchString := strings.TrimSpace(queryParams.Get("searchString"))
+
+// 	// Default to today if no date range is given
+// 	if fromDate == "" && toDate == "" {
+// 		today := time.Now().Format("2006-01-02")
+// 		fromDate = today
+// 		toDate = today
+// 	}
+
+// 	filter := &filters.ListFilter{
+// 		Page:         pageNo,
+// 		SearchString: searchString,
+// 	}
+
+// 	totalRecords, dailyLogsEntity, errResp :=
+// 		h.Options.AttendanceLogService.ListDailyAttendanceLog(
+// 			c.Request.Context(),
+// 			filter,
+// 			empID,
+// 			fromDate,
+// 			toDate,
+// 		)
+
+// 	if errResp != nil {
+// 		log.Error(errResp.Error(), reqID)
+// 		httpUtils.ErrorResponse(c, errResp, nil)
+// 		return
+// 	}
+
+// 	dailyLogsResponse := []coreAPIModel.DailyAttendanceLogResponse{}
+// 	for _, e := range dailyLogsEntity {
+// 		dailyLogsResponse = append(
+// 			dailyLogsResponse,
+// 			converter.DailyAttendanceLogEntityToAttendanceLogAPIModelResponse(e),
+// 		)
+// 	}
+
+// 	var response coreAPIModel.DailyAttendanceLogListResponse
+// 	response.TotalRecords = totalRecords
+// 	response.NoOfRecordsPerPage = commonConstants.NO_OF_RECORDS_PER_PAGE
+// 	response.DailyAttendanceLog = dailyLogsResponse
+
+// 	log.Info("core>web>attendanceLog: daily attendance log list completed", reqID)
+// 	httpUtils.DataResponse(c, http.StatusOK, "daily attendance logs fetched successfully", response)
+// }
+
+func (h CoreHandlerRegistry) GetDailyAttendanceHandler(c *gin.Context) {
 	reqID, _ := context.GetRequestIDFromContext(c.Request.Context())
-	log.Info("core>web>attendanceLog: daily attendance log list started", reqID)
+	log.Info("core>web>attendanceLog: get daily attendance started", reqID)
 
 	queryParams := c.Request.URL.Query()
 
-	paramPageValue := queryParams.Get("page")
-	pageNo, _ := strconv.Atoi(paramPageValue)
-
 	empID := strings.TrimSpace(queryParams.Get("empID"))
-	fromDate := strings.TrimSpace(queryParams.Get("fromDate"))
-	toDate := strings.TrimSpace(queryParams.Get("toDate"))
-	searchString := strings.TrimSpace(queryParams.Get("searchString"))
+	targetDate := strings.TrimSpace(queryParams.Get("fromDate"))
+	//	toDate := strings.TrimSpace(queryParams.Get("toDate"))
 
 	// Default to today if no date range is given
-	if fromDate == "" && toDate == "" {
-		today := time.Now().Format("2006-01-02")
-		fromDate = today
-		toDate = today
+	if targetDate == "" {
+		today := time.Date(2026, 9, 3, 0, 0, 0, 0, time.Local)
+		targetDate = today.AddDate(0, 0, -1).Format("2006-01-02")
 	}
 
 	filter := &filters.ListFilter{
-		Page:         pageNo,
-		SearchString: searchString,
+		Page:         1,
+		SearchString: "",
 	}
 
 	totalRecords, dailyLogsEntity, errResp :=
-		h.Options.AttendanceLogService.ListDailyAttendanceLog(
+		h.Options.AttendanceLogService.ListDailyAttendanceByHoursLog(
 			c.Request.Context(),
 			filter,
 			empID,
-			fromDate,
-			toDate,
+			targetDate,
 		)
 
 	if errResp != nil {
@@ -241,19 +293,19 @@ func (h CoreHandlerRegistry) ListDailyAttendanceLogHandler(c *gin.Context) {
 		return
 	}
 
-	dailyLogsResponse := []coreAPIModel.DailyAttendanceLogResponse{}
-	for _, e := range dailyLogsEntity {
-		dailyLogsResponse = append(
-			dailyLogsResponse,
-			converter.DailyAttendanceLogEntityToAttendanceLogAPIModelResponse(e),
-		)
-	}
+	// dailyLogsResponse := []coreAPIModel.DailyAttendanceLogResponse{}
+	// for _, e := range dailyLogsEntity {
+	// 	dailyLogsResponse = append(
+	// 		dailyLogsResponse,
+	// 		converter.DailyAttendanceLogEntityToAttendanceLogAPIModelResponse(e),
+	// 	)
+	// }
 
-	var response coreAPIModel.DailyAttendanceLogListResponse
+	var response coreAPIModel.DailyAttendanceLogHoursListResponse
 	response.TotalRecords = totalRecords
 	response.NoOfRecordsPerPage = commonConstants.NO_OF_RECORDS_PER_PAGE
-	response.DailyAttendanceLog = dailyLogsResponse
+	response.DailyAttendanceLog = dailyLogsEntity
 
-	log.Info("core>web>attendanceLog: daily attendance log list completed", reqID)
+	log.Info("core>web>attendanceLog: get daily attendance completed", reqID)
 	httpUtils.DataResponse(c, http.StatusOK, "daily attendance logs fetched successfully", response)
 }
