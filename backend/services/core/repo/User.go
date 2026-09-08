@@ -396,3 +396,39 @@ func (r *UserRepoImpl) UpdateUserPassword(ctx context.Context, userID int, hashe
 	}
 	return nil
 }
+
+func (r *UserRepoImpl) UpdateUserRole(ctx context.Context, userID int, roleID int) errors.Response {
+
+	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
+
+	log.Info("core>repo>user: UpdateUserRole started for user id "+strconv.Itoa(userID), reqID)
+
+	query := `
+        UPDATE user_roles
+        SET role_id = ?
+        WHERE user_id = ?
+        AND deleted_at IS NULL
+    `
+
+	result, err := r.db.ExecContext(ctx, query, roleID, userID)
+
+	if err != nil {
+		log.Error("failed to update user role: "+err.Error(), reqID)
+		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Error("failed to get affected rows: "+err.Error(), reqID)
+
+		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	if rowsAffected == 0 {
+		log.Error("no active role found for user id "+strconv.Itoa(userID), reqID)
+
+		return errors.ResponseNotFoundError(errors.NOT_FOUND_ERROR)
+	}
+	log.Info("core>repo>user: UpdateUserRole completed for user id "+strconv.Itoa(userID), reqID)
+	return nil
+}

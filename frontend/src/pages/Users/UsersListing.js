@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
+  Autocomplete,
   Card,
   FormControl,
   FormControlLabel,
@@ -23,8 +24,9 @@ import {
   wrapCell,
   formatDateTime,
   radioLabelSx,
+  autoCompleteProps,
+  selectSx,
 } from "components/CommonComponent/CommonFunction";
-import { DEFAULT_RECORDS_PER_PAGE } from "components/common/constant";
 import {
   getUsersList,
   updateUserDetail,
@@ -37,11 +39,16 @@ import { userList } from "constants/users";
 import CenterPopup from "components/CommonComponent/CenterPopup";
 import RequiredLabel from "components/CommonComponent/RequiredLabel";
 import MDBadge from "components/MDBadge";
-import { REGEX ,STATUS} from "components/common/constant";
+import {
+  DEFAULT_RECORDS_PER_PAGE,
+  REGEX,
+  STATUS,
+} from "components/common/constant";
 import { useNotify } from "components/CommonComponent/NotificationProvider";
 import { showAlert } from "components/CommonComponent/ShowAlert";
-import { selectSx } from "components/CommonComponent/CommonFunction";
 import { ArrowDropDown } from "@mui/icons-material";
+import { getRoleListing } from "actions/role";
+import { roleList } from "constants/role";
 
 const initialFields = {
   id: "",
@@ -55,15 +62,21 @@ const initialFields = {
     original: "",
     error: "",
   },
+  role: {
+    value: "",
+    original: "",
+    error: "",
+  },
   status: {
-    value: "ACTIVE",
-    original: "ACTIVE",
+    value: "INACTIVE",
+    original: "INACTIVE",
     error: "",
   },
 };
 function UsersListing() {
   const dispatch = useDispatch();
   const userListData = useSelector((state) => state.users.userList);
+  const roleListData = useSelector((state) => state.role.roleList);
   const { notify } = useNotify();
   const [listState, setListState] = useState({
     isLoading: true,
@@ -74,6 +87,7 @@ function UsersListing() {
   const [filterState, setFilterState] = useState({
     searchString: "",
     status: null,
+    role: null,
     filterParams: {
       filters: [],
       searchString: "",
@@ -82,6 +96,13 @@ function UsersListing() {
   const [formData, setFormData] = useState(initialFields);
   const [panelMode, setPanelMode] = useState(null); //add /edit
   const [pageNum, setPageNum] = useState(1);
+
+  useEffect(() => {
+    getRoleListing(dispatch);
+    return () => {
+      dispatch({ type: roleList, payload: {} });
+    };
+  }, [dispatch]);
 
   useEffect(() => {
     getUsersList(
@@ -133,7 +154,7 @@ function UsersListing() {
       email: item?.email || "-",
       empName: item?.empName || "-",
       role: item?.role || null,
-      status: item?.status || "ACTIVE",
+      status: item?.status || "INACTIVE",
       lastLoginAt: item?.lastLoginAt || null,
     })) || [];
 
@@ -349,8 +370,15 @@ function UsersListing() {
         const field = formData[key];
 
         if (panelMode !== "edit" || field.value !== field.original) {
-          payload[key] =
-            typeof field.value === "string" ? field.value.trim() : field.value;
+          if (key === "role") {
+            // Send only role ID to backend
+            payload.roleID = field.value?.id || 0;
+          } else {
+            payload[key] =
+              typeof field.value === "string"
+                ? field.value.trim()
+                : field.value;
+          }
         }
       });
 
@@ -449,6 +477,14 @@ function UsersListing() {
       });
     }
 
+    if (filterState.role) {
+      filterParams.push({
+        field: "RoleID",
+        condition: "eq",
+        filterValues: [String(filterState.role)],
+      });
+    }
+
     return {
       filters: filterParams.length ? JSON.stringify(filterParams) : [],
       searchString: filterState.searchString.trim(),
@@ -485,9 +521,14 @@ function UsersListing() {
         original: "",
         error: "",
       },
+      role: {
+        value: null,
+        original: null,
+        error: "",
+      },
       status: {
-        value: "ACTIVE",
-        original: "ACTIVE",
+        value: "INACTIVE",
+        original: "INACTIVE",
         error: "",
       },
     });
@@ -519,9 +560,26 @@ function UsersListing() {
             original: data?.empName || "",
             error: "",
           },
+          role: {
+            value: data?.role
+              ? {
+                  id: data.role.ID,
+                  name: data.role.name,
+                  code: data.role.code,
+                }
+              : null,
+            original: data?.role
+              ? {
+                  id: data.role.ID,
+                  name: data.role.name,
+                  code: data.role.code,
+                }
+              : null,
+            error: "",
+          },
           status: {
-            value: data?.status || "ACTIVE",
-            original: data?.status || "ACTIVE",
+            value: data?.status || "INACTIVE",
+            original: data?.status || "INACTIVE",
             error: "",
           },
         });
@@ -584,54 +642,60 @@ function UsersListing() {
     });
   };
 
-const handleSendMail = (row) => {
-  showAlert({
-    title: "Send Login Credentials?",
-    message: `A new temporary password will be generated and sent to "${row.email}". Do you want to continue?`,
-    type: "warning",
-    showCancel: true,
-    confirmText: "Yes, send mail",
-    cancelText: "Cancel",
+  const handleSendMail = (row) => {
+    showAlert({
+      title: "Send Login Credentials?",
+      message: `A new temporary password will be generated and sent to "${row.email}". Do you want to continue?`,
+      type: "warning",
+      showCancel: true,
+      confirmText: "Yes, send mail",
+      cancelText: "Cancel",
 
-    onConfirm: async () => {
-      try {
-        setListState((prev) => ({
-          ...prev,
-          showLoaderOnClick: true,
-        }));
+      onConfirm: async () => {
+        try {
+          setListState((prev) => ({
+            ...prev,
+            showLoaderOnClick: true,
+          }));
 
-        const res = await sendMail(row.id);
+          const res = await sendMail(row.id);
 
-        if (res?.code === 200) {
-          notify(
-            res?.message || "Login credentials sent successfully",
-            "success",
-          );
-        } else {
-          const message = Array.isArray(res?.message)
-            ? res.message
-                .map((err) => (err?.Msg ? err.Msg : JSON.stringify(err)))
-                .join(", ")
-            : res?.message || "Failed to send login credentials";
+          if (res?.code === 200) {
+            notify(
+              res?.message || "Login credentials sent successfully",
+              "success",
+            );
+          } else {
+            const message = Array.isArray(res?.message)
+              ? res.message
+                  .map((err) => (err?.Msg ? err.Msg : JSON.stringify(err)))
+                  .join(", ")
+              : res?.message || "Failed to send login credentials";
 
-          notify(message, "error");
+            notify(message, "error");
+          }
+        } catch (error) {
+          notify(error?.message || "Failed to send login credentials", "error");
+        } finally {
+          setListState((prev) => ({
+            ...prev,
+            showLoaderOnClick: false,
+          }));
         }
-      } catch (error) {
-        notify(
-          error?.message || "Failed to send login credentials",
-          "error",
-        );
-      } finally {
-        setListState((prev) => ({
-          ...prev,
-          showLoaderOnClick: false,
-        }));
-      }
-    },
+      },
 
-    onCancel: () => {},
-  });
-};
+      onCancel: () => {},
+    });
+  };
+
+  const roleOptions =
+    roleListData?.code === 200
+      ? (roleListData?.data || []).map((role) => ({
+          id: role.ID,
+          name: role.name,
+          code: role.code,
+        }))
+      : [];
 
   return (
     <>
@@ -684,6 +748,32 @@ const handleSendMail = (row) => {
                             searchString: e.target.value,
                           })
                         }
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6} md={4} lg={2}>
+                      <Autocomplete
+                        {...autoCompleteProps}
+                        disablePortal
+                        size="small"
+                        options={roleOptions || []}
+                        value={
+                          roleOptions.find((r) => r.id === filterState.role) ||
+                          null
+                        }
+                        getOptionLabel={(option) => option.name || ""}
+                        onChange={(event, newValue) =>
+                          setFilterState({
+                            ...filterState,
+                            role: newValue?.id || null,
+                          })
+                        }
+                        isOptionEqualToValue={(option, value) =>
+                          option.id === value?.id
+                        }
+                        renderInput={(params) => (
+                          <TextField {...params} placeholder="Select role" />
+                        )}
                       />
                     </Grid>
 
@@ -843,7 +933,7 @@ const handleSendMail = (row) => {
           <CenterPopup isOpen={panelMode !== null} onClose={closeModal}>
             <MDBox sx={{ p: 2 }}>
               <MDTypography variant="h6" mb={2}>
-                {panelMode === "edit" ? "Edit Email List" : "Add Email List"}
+                {panelMode === "edit" ? "Edit User" : "Add User"}
               </MDTypography>
 
               {listState.isLoading ? (
@@ -931,6 +1021,33 @@ const handleSendMail = (row) => {
                         sx={radioLabelSx}
                       />
                     </RadioGroup>
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <RequiredLabel required>Role</RequiredLabel>
+
+                    <Autocomplete
+                      {...autoCompleteProps}
+                      size="small"
+                      disablePortal
+                      options={roleOptions}
+                      getOptionLabel={(option) => option.name || ""}
+                      value={formData.role.value || null}
+                      onChange={(event, newValue) =>
+                        handleChange("role", newValue)
+                      }
+                      isOptionEqualToValue={(option, value) =>
+                        option?.id === value?.id
+                      }
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          placeholder="Select role"
+                          error={!!formData.role.error}
+                          helperText={formData.role.error}
+                        />
+                      )}
+                    />
                   </Grid>
 
                   {/* Save Button */}

@@ -190,3 +190,19 @@ export const encodePassword = (password) => {
   const salted = PASSWORD_SALT + password;
   return btoa(salted); // Convert the salted string into Base64 format
 };
+
+
+export const autoCompleteProps = {
+  disablePortal: true,
+  ListboxProps: {
+    sx: {
+      maxHeight: 170,
+      overflowY: "auto",
+    },
+  },
+  sx: {
+    "& .MuiAutocomplete-clearIndicator": {
+      transform: "translate(15px, -12px)",
+    },
+  },
+};
