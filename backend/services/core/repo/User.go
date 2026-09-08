@@ -253,11 +253,7 @@ func (r *UserRepoImpl) GetUserbyID(ctx context.Context, userID int) (entity.User
 	return userEntity, nil
 }
 
-func (r *UserRepoImpl) ListUser(
-	ctx context.Context,
-	filter *filters.ListFilter,
-) (int, []entity.User, errors.Response) {
-
+func (r *UserRepoImpl) ListUser(ctx context.Context, filter *filters.ListFilter) (int, []entity.User, errors.Response) {
 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
 	log.Info("core>repo>user: ListUser started", reqID)
 
@@ -325,36 +321,19 @@ func (r *UserRepoImpl) ListUser(
 	if filter.SearchString != "" {
 		search := "%" + strings.TrimSpace(filter.SearchString) + "%"
 
-		whereStr = append(
-			whereStr,
-			"(u.email LIKE ? OR e.emp_name LIKE ? OR e.emp_id LIKE ?)",
-		)
+		whereStr = append(whereStr, "(u.email LIKE ? OR e.emp_name LIKE ? OR e.emp_id LIKE ?)")
 
-		args = append(
-			args,
-			search,
-			search,
-			search,
-		)
+		args = append(args, search, search, search)
 	}
 
 	// Soft delete
-	whereStr = append(
-		whereStr,
-		"u.deleted_at IS NULL",
-	)
-
+	whereStr = append(whereStr, "u.deleted_at IS NULL")
 	whereString := strings.Join(whereStr, " AND ")
 
 	if whereString != "" {
 		queryStatement += " WHERE " + whereString
 	}
 
-	/*
-		Important:
-		Because we are using GROUP_CONCAT(), every user must
-		be grouped into one row.
-	*/
 	queryStatement += `
 		GROUP BY
 			u.id,
@@ -372,11 +351,7 @@ func (r *UserRepoImpl) ListUser(
 	`
 
 	// Sort
-	sortStr := filterPkg.CreateSortStr(
-		filter.SortOption,
-		modelmap,
-	)
-
+	sortStr := filterPkg.CreateSortStr(filter.SortOption, modelmap)
 	queryStatement += sortStr
 
 	// Count users
@@ -389,19 +364,12 @@ func (r *UserRepoImpl) ListUser(
 
 	var count int
 
-	err := r.db.Get(
-		&count,
-		countQuery,
-		args...,
-	)
+	err := r.db.Get(&count, countQuery, args...)
 
 	if err != nil {
 		log.Error(err.Error(), reqID)
-
 		return 0, nil,
-			errors.ResponseInternalServerError(
-				errors.INTERNAL_SERVER_ERROR,
-			)
+			errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
 	}
 
 	// Pagination
@@ -424,29 +392,20 @@ func (r *UserRepoImpl) ListUser(
 	// Fetch users
 	usersModel := []model.User{}
 
-	err = r.db.Select(
-		&usersModel,
-		limitQuery,
-		argsWithPagination...,
-	)
+	err = r.db.Select(&usersModel, limitQuery, argsWithPagination...)
 
 	if err != nil {
 		log.Error(err.Error(), reqID)
-
 		return 0, nil,
-			errors.ResponseInternalServerError(
-				errors.INTERNAL_SERVER_ERROR,
-			)
+			errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
 	}
 
 	// Convert to entity
 	userEntities := []entity.User{}
 	for _, userModel := range usersModel {
-
 		userEntity := converter.UserModelToUserEntity(
 			userModel,
 		)
-
 		userEntities = append(
 			userEntities,
 			userEntity,

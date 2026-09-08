@@ -67,10 +67,12 @@ func UserAPIToUserEntity(request *coreAPIModel.User) entity.User {
 }
 
 func CreateUserAPIToUserEntity(request *coreAPIModel.CreateUser) entity.User {
-	return entity.User{
-		Email:  request.Email,
-		Status: request.Status,
-	}
+    return entity.User{
+        Email:   request.Email,
+        EmpName: request.EmpName,
+        Status:  request.Status,
+        RoleIDs: request.RoleIDs,
+    }
 }
 
 func UpdateUserAPIRequestToUserEntity(request *coreAPIModel.UpdateUserRequest) entity.User {

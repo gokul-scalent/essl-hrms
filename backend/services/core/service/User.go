@@ -73,12 +73,30 @@ func (s *UserServiceImpl) CreateUser(ctx context.Context, user entity.User) (int
 		log.Error(errResp.Error(), reqID)
 		return 0, errResp
 	}
-	//for now we have role as admin so
-	errResp = s.userRepo.AssignUserRole(ctx, userID, 1)
-	if errResp != nil {
-		log.Error(errResp.Error(), reqID)
-		return 0, errResp
+
+	if user.RoleIDs != nil {
+		for _, roleID := range user.RoleIDs {
+
+			if roleID <= 0 {
+				continue
+			}
+
+			errResp = s.userRepo.AssignUserRole(
+				ctx,
+				userID,
+				roleID,
+			)
+
+			if errResp != nil {
+				log.Error(errResp.Error(), reqID)
+				return 0, errResp
+			}
+		}
 	}
+	log.Info(
+        "CreateUser roleIDs="+fmt.Sprintf("%v", user.RoleIDs),
+        reqID,
+    )
 	// Send welcome email-
 	if s.config.IsEmailSendingEnabled == "ACTIVE" {
 

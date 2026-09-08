@@ -10,8 +10,10 @@ type LoginRequest struct {
 }
 
 type CreateUser struct {
-	Email  string `json:"email" binding:"required,email"`
-	Status string `json:"status" binding:"omitempty,oneof=ACTIVE INACTIVE"`
+	Email   string `json:"email" binding:"required,email"`
+	EmpName string `json:"empName" binding:"required"`
+	Status  string `json:"status" binding:"omitempty,oneof=ACTIVE INACTIVE"`
+	RoleIDs []int  `json:"roleIDs" binding:"required"`
 }
 type User struct {
 	Email        string     `json:"email" binding:"omitempty"`
@@ -20,7 +22,6 @@ type User struct {
 	LastLoginAt  *time.Time `json:"lastLoginAt" binding:"omitempty"`
 	SessionToken string     `json:"sessionToken" binding:"omitempty"`
 	RoleIDs      []int      `json:"roleIDs" binding:"required"`
-
 }
 
 type UpdateUserRequest struct {
