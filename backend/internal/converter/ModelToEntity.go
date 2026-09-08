@@ -111,4 +111,28 @@ func RoleModelToRoleEntity(m model.Role) entity.Role {
 	}
 }
 
+func UserRoleModelsToUserEntity(userID int, roleModels []model.UserRoleModel) *entity.User {
+
+	roleIDs := make([]int, 0, len(roleModels))
+	roles := make([]entity.Role, 0, len(roleModels))
+
+	for _, roleModel := range roleModels {
+
+		roleIDs = append(roleIDs, roleModel.RoleID)
+
+		roles = append(roles, entity.Role{
+			ID:     roleModel.RoleID,
+			Code:   roleModel.RoleCode,
+			Name:   roleModel.RoleName,
+			Status: roleModel.RoleStatus,
+		})
+	}
+
+	return &entity.User{
+		ID:      userID,
+		RoleIDs: roleIDs,
+		Roles:   roles,
+	}
+}
+
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------
