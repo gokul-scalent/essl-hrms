@@ -43,6 +43,7 @@ import {
   DEFAULT_RECORDS_PER_PAGE,
   REGEX,
   STATUS,
+  CITY,
 } from "components/common/constant";
 import { useNotify } from "components/CommonComponent/NotificationProvider";
 import { showAlert } from "components/CommonComponent/ShowAlert";
@@ -67,6 +68,11 @@ const initialFields = {
     original: [],
     error: "",
   },
+  city: {
+    value: "",
+    original: "",
+    error: "",
+  },
   status: {
     value: "INACTIVE",
     original: "INACTIVE",
@@ -88,6 +94,7 @@ function UsersListing() {
     searchString: "",
     status: null,
     role: null,
+    city: null,
     filterParams: {
       filters: [],
       searchString: "",
@@ -219,6 +226,12 @@ function UsersListing() {
           </ul>
         );
       },
+    },
+    {
+      Header: "City",
+      accessor: "city",
+      align: "left",
+      width: "120px",
     },
     {
       Header: "Status",
@@ -364,6 +377,12 @@ function UsersListing() {
       case "role":
         if (!Array.isArray(trimmedValue) || trimmedValue.length === 0) {
           return "At least one role is required.";
+        }
+        return "";
+
+      case "city":
+        if (!trimmedValue) {
+          return "City is required.";
         }
         return "";
 
@@ -514,7 +533,15 @@ function UsersListing() {
       filterParams.push({
         field: "RoleID",
         condition: "eq",
-        filterValues: [String(filterState.role)],
+        filterValues: [String(filterState.role.id)],
+      });
+    }
+    
+    if (filterState.city) {
+      filterParams.push({
+        field: "City",
+        condition: "eq",
+        filterValues: [filterState.city],
       });
     }
 
@@ -528,6 +555,8 @@ function UsersListing() {
     setFilterState({
       searchString: "",
       status: null,
+      role: null,
+      city: null,
       filterParams: {
         filters: [],
         searchString: "",
@@ -557,6 +586,11 @@ function UsersListing() {
       role: {
         value: [],
         original: [],
+        error: "",
+      },
+      city: {
+        value: "",
+        original: "",
         error: "",
       },
       status: {
@@ -606,6 +640,11 @@ function UsersListing() {
               code: role.code,
             })),
 
+            error: "",
+          },
+          city: {
+            value: data?.city || "",
+            original: data?.city || "",
             error: "",
           },
           status: {
@@ -784,28 +823,69 @@ function UsersListing() {
 
                     <Grid item xs={12} sm={6} md={4} lg={2}>
                       <Autocomplete
-                        {...autoCompleteProps}
-                        disablePortal
-                        size="small"
-                        options={roleOptions || []}
-                        value={
-                          roleOptions.find((r) => r.id === filterState.role) ||
-                          null
-                        }
-                        getOptionLabel={(option) => option.name || ""}
-                        onChange={(event, newValue) =>
-                          setFilterState({
-                            ...filterState,
-                            role: newValue?.id || null,
-                          })
-                        }
+                        options={roleOptions}
+                        value={filterState.role}
+                        getOptionLabel={(option) => option?.name || ""}
                         isOptionEqualToValue={(option, value) =>
-                          option.id === value?.id
+                          option?.id === value?.id
                         }
+                        onChange={(event, newValue) => {
+                          setFilterState((prev) => ({
+                            ...prev,
+                            role: newValue,
+                          }));
+                        }}
                         renderInput={(params) => (
-                          <TextField {...params} placeholder="Select role" />
+                          <TextField
+                            {...params}
+                            placeholder="Select Role"
+                            size="small"
+                          />
                         )}
                       />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6} md={4} lg={2}>
+                      <FormControl fullWidth size="small" sx={selectSx("100%")}>
+                        <Select
+                          value={filterState.city || ""}
+                          displayEmpty
+                          onChange={(e) =>
+                            setFilterState({
+                              ...filterState,
+                              city: e.target.value || null,
+                            })
+                          }
+                          IconComponent={ArrowDropDown}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleSearch();
+                            }
+                          }}
+                          renderValue={(selected) => {
+                            if (!selected) {
+                              return (
+                                <span style={{ color: "rgba(0, 0, 0, 0.38)" }}>
+                                  Select City
+                                </span>
+                              );
+                            }
+
+                            const selectedCity = CITY.find(
+                              (city) => city.value === selected,
+                            );
+
+                            return selectedCity?.label || selected;
+                          }}
+                        >
+                          {CITY.map((city) => (
+                            <MenuItem key={city.value} value={city.value}>
+                              {city.label}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
                     </Grid>
 
                     <Grid item xs={12} sm={6} md={4} lg={2}>
@@ -1028,6 +1108,53 @@ function UsersListing() {
                       </MDTypography>
                     )}
                   </Grid>
+                  <Grid item xs={12}>
+                    <RequiredLabel required>Select City</RequiredLabel>
+
+                    <FormControl
+                      fullWidth
+                      size="small"
+                      error={!!formData.city.error}
+                      sx={selectSx("100%")}
+                    >
+                      <Select
+                        name="city"
+                        value={formData.city.value || ""}
+                        displayEmpty
+                        onChange={(e) => handleChange("city", e.target.value)}
+                        onBlur={(e) => handleOnBlur("city", e.target.value)}
+                        IconComponent={ArrowDropDown}
+                        renderValue={(selected) => {
+                          if (!selected) {
+                            return (
+                              <span style={{ color: "rgba(0, 0, 0, 0.38)" }}>
+                                Select City
+                              </span>
+                            );
+                          }
+
+                          const selectedCity = CITY.find(
+                            (city) => city.value === selected,
+                          );
+
+                          return selectedCity?.label || selected;
+                        }}
+                      >
+                        {CITY.map((city) => (
+                          <MenuItem key={city.value} value={city.value}>
+                            {city.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+
+                    {formData.city.error && (
+                      <MDTypography variant="caption" color="error">
+                        {formData.city.error}
+                      </MDTypography>
+                    )}
+                  </Grid>
+
                   <Grid item xs={12}>
                     <RequiredLabel required>Select Role</RequiredLabel>
                     <Autocomplete

@@ -35,6 +35,7 @@ var UserModelMap = map[string]FieldStruct{
 	"CreatedAt":     {MySQLDatatype: "datetime", FieldName: "created_at"},
 	"UpdatedAt":     {MySQLDatatype: "datetime", FieldName: "updated_at"},
 	"DeletedAt":     {MySQLDatatype: "datetime", FieldName: "deleted_at"},
+	"RoleID":        {MySQLDatatype: "int", FieldName: "ur.role_id"},
 	"RoleIDs":       {MySQLDatatype: "varchar", FieldName: "ur.role_id"},
 	"RoleCodes":     {MySQLDatatype: "varchar", FieldName: "r.code"},
 	"RoleNames":     {MySQLDatatype: "varchar", FieldName: "r.name"},
