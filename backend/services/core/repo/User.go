@@ -35,9 +35,9 @@ func (r *UserRepoImpl) CreateUser(ctx context.Context, user entity.User) (int, e
 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
 	log.Info("core>repo>user: CreateUser started", reqID)
 
-	query := "INSERT INTO users (email, password, is_password_set, status, session_token) VALUES(?, ?, ?, ?, ? )"
+	query := "INSERT INTO users (email, empname, password, is_password_set, status, session_token) VALUES(?, ?, ?, ?, ? , ?)"
 
-	result, err := r.db.Exec(query, user.Email, user.Password, user.IsPasswordSet, user.Status, user.SessionToken)
+	result, err := r.db.Exec(query, user.Email, user.EmpName, user.Password, user.IsPasswordSet, user.Status, user.SessionToken)
 	if err != nil {
 		log.Error(err.Error(), reqID)
 		// Active user with same email.then show email already exits
