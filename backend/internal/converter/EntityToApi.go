@@ -16,6 +16,7 @@ func UserEntityToUserAPIModelResponse(user entity.User) apimodel.UserResponse {
 		IsPasswordSet: user.IsPasswordSet,
 		EmpID:         user.EmpID,
 		EmpName:       user.EmpName,
+		Privilege:     user.Privilege,
 	}
 
 	if !user.LastLoginAt.IsZero() {

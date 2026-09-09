@@ -25,6 +25,7 @@ func UserModelToUserEntity(m model.User) entity.User {
 		EmpID:         m.EmpID.String,
 		EmpName:       m.EmpName.String,
 		City:          m.City.String,
+		Privilege:     m.Privilege,
 	}
 
 	// Role IDs
