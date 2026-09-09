@@ -168,7 +168,7 @@ function UsersListing() {
           (userListData?.data?.noOfRecordsPerPage || DEFAULT_RECORDS_PER_PAGE) +
         index +
         1,
-      empID : item?.empID || "-",
+      empID: item?.empID || "-",
       email: item?.email || "-",
       empName: item?.empName || "-",
       roles: item?.roles || [],
@@ -211,7 +211,7 @@ function UsersListing() {
       width: "200px",
       Cell: (cell) => wrapCell(cell.value || "-", "200px"),
     },
-     {
+    {
       Header: "Employee ID",
       accessor: "empID",
       align: "left",
@@ -224,6 +224,12 @@ function UsersListing() {
       align: "left",
       width: "200px",
       Cell: (cell) => wrapCell(cell.value || "-", "200px"),
+    },
+    {
+      Header: "Privilege",
+      accessor: "privilege",
+      align: "left",
+      width: "100px",
     },
     {
       Header: "Roles",
@@ -1110,7 +1116,11 @@ function UsersListing() {
             </Grid>
           </Grid>
 
-          <CenterPopup isOpen={panelMode !== null} onClose={closeModal}  width={770}>
+          <CenterPopup
+            isOpen={panelMode !== null}
+            onClose={closeModal}
+            width={770}
+          >
             <MDBox sx={{ p: 2 }}>
               <MDTypography variant="h6" mb={2}>
                 {panelMode === "edit" ? "Edit User" : "Add User"}

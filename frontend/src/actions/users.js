@@ -3,9 +3,9 @@ import * as API from "../API/index";
 import { authorizedUser } from "components/CommonComponent/CommonFunction";
 
 //get users list
-export const getUsersList = async (dispatch,pageNum,filters,searchString,) => {
+export const getUsersList = async (dispatch,pageNum,filters,searchString) => {
   try {
-    const res = await API.get_users_list(pageNum,filters,searchString,);
+    const res = await API.get_users_list(pageNum,filters,searchString);
     dispatch({ type: userList, payload: res.data });
   } catch (error) {
     authorizedUser(error.response?.data);
