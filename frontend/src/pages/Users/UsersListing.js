@@ -168,6 +168,7 @@ function UsersListing() {
           (userListData?.data?.noOfRecordsPerPage || DEFAULT_RECORDS_PER_PAGE) +
         index +
         1,
+      empID : item?.empID || "-",
       email: item?.email || "-",
       empName: item?.empName || "-",
       roles: item?.roles || [],
@@ -210,6 +211,13 @@ function UsersListing() {
       width: "200px",
       Cell: (cell) => wrapCell(cell.value || "-", "200px"),
     },
+     {
+      Header: "Employee ID",
+      accessor: "empID",
+      align: "left",
+      width: "100px",
+      Cell: (cell) => wrapCell(cell.value || "-", "100px"),
+    },
     {
       Header: "Employee Name",
       accessor: "empName",
@@ -241,7 +249,7 @@ function UsersListing() {
       Header: "City",
       accessor: "city",
       align: "left",
-      width: "120px",
+      width: "100px",
     },
     {
       Header: "Status",
@@ -254,7 +262,7 @@ function UsersListing() {
       Header: "Last Login At",
       accessor: "lastLoginAt",
       align: "left",
-      width: "120px",
+      width: "100px",
       Cell: (cell) => (cell.value ? formatDateTime(cell.value) : "-"),
     },
     {
