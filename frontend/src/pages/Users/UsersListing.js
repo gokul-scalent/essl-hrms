@@ -58,9 +58,19 @@ const initialFields = {
     original: "",
     error: "",
   },
+  empID: {
+    value: "",
+    original: "",
+    error: "",
+  },
   empName: {
     value: "",
     original: "",
+    error: "",
+  },
+  privilege: {
+    value: 0,
+    original: 0,
     error: "",
   },
   role: {
@@ -359,6 +369,12 @@ function UsersListing() {
     const trimmedValue = typeof value === "string" ? value.trim() : value;
 
     switch (name) {
+      case "empID":
+        if (!trimmedValue) {
+          return "Employee ID is required.";
+        }
+        return "";
+
       case "empName":
         if (!trimmedValue) {
           return "Employee name is required.";
@@ -371,6 +387,23 @@ function UsersListing() {
         }
         if (!REGEX.EMAIL_REGEX.test(trimmedValue)) {
           return "Please enter a valid email address.";
+        }
+        return "";
+
+      case "privilege":
+        if (
+          trimmedValue === "" ||
+          trimmedValue === null ||
+          trimmedValue === undefined
+        ) {
+          return "";
+        }
+        if (!Number.isInteger(Number(trimmedValue))) {
+          return "Privilege must be a valid number.";
+        }
+
+        if (Number(trimmedValue) < 0) {
+          return "Privilege cannot be negative.";
         }
         return "";
 
@@ -428,8 +461,14 @@ function UsersListing() {
         }
 
         if (panelMode !== "edit" || field.value !== field.original) {
-          payload[key] =
-            typeof field.value === "string" ? field.value.trim() : field.value;
+          if (key === "privilege") {
+            payload[key] = Number(field.value);
+          } else {
+            payload[key] =
+              typeof field.value === "string"
+                ? field.value.trim()
+                : field.value;
+          }
         }
       });
 
@@ -536,7 +575,7 @@ function UsersListing() {
         filterValues: [String(filterState.role.id)],
       });
     }
-    
+
     if (filterState.city) {
       filterParams.push({
         field: "City",
@@ -573,7 +612,13 @@ function UsersListing() {
 
   const openAddModal = () => {
     setFormData({
+      id: "",
       email: {
+        value: "",
+        original: "",
+        error: "",
+      },
+      empID: {
         value: "",
         original: "",
         error: "",
@@ -581,6 +626,11 @@ function UsersListing() {
       empName: {
         value: "",
         original: "",
+        error: "",
+      },
+      privilege: {
+        value: 0,
+        original: 0,
         error: "",
       },
       role: {
@@ -620,6 +670,17 @@ function UsersListing() {
           email: {
             value: data?.email || "",
             original: data?.email || "",
+            error: "",
+          },
+          empID: {
+            value: data?.empID || "",
+            original: data?.empID || "",
+            error: "",
+          },
+
+          privilege: {
+            value: data?.privilege ?? 0,
+            original: data?.privilege ?? 0,
             error: "",
           },
           empName: {
@@ -1041,7 +1102,7 @@ function UsersListing() {
             </Grid>
           </Grid>
 
-          <CenterPopup isOpen={panelMode !== null} onClose={closeModal}>
+          <CenterPopup isOpen={panelMode !== null} onClose={closeModal}  width={770}>
             <MDBox sx={{ p: 2 }}>
               <MDTypography variant="h6" mb={2}>
                 {panelMode === "edit" ? "Edit User" : "Add User"}
@@ -1058,8 +1119,8 @@ function UsersListing() {
                 </MDBox>
               ) : (
                 <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                    <RequiredLabel required>Email</RequiredLabel>
+                  <Grid item xs={6}>
+                    <RequiredLabel>Email</RequiredLabel>
                     <MDInput
                       variant="outlined"
                       type="text"
@@ -1082,7 +1143,62 @@ function UsersListing() {
                       </MDTypography>
                     )}
                   </Grid>
-                  <Grid item xs={12}>
+
+                  <Grid item xs={6}>
+                    <RequiredLabel required>Employee ID</RequiredLabel>
+
+                    <MDInput
+                      variant="outlined"
+                      type="text"
+                      name="empID"
+                      placeholder="Enter employee ID"
+                      value={formData.empID.value}
+                      onChange={(e) =>
+                        handleChange(e.target.name, e.target.value)
+                      }
+                      onBlur={(e) =>
+                        handleOnBlur(e.target.name, e.target.value)
+                      }
+                      error={!!formData.empID.error}
+                      fullWidth
+                      inputProps={{ maxLength: 10 }}
+                    />
+
+                    {formData.empID.error && (
+                      <MDTypography variant="caption" color="error">
+                        {formData.empID.error}
+                      </MDTypography>
+                    )}
+                  </Grid>
+
+                  <Grid item xs={6}>
+                    <RequiredLabel>Privilege</RequiredLabel>
+
+                    <MDInput
+                      variant="outlined"
+                      type="number"
+                      name="privilege"
+                      placeholder="Enter privilege"
+                      value={formData.privilege.value}
+                      onChange={(e) =>
+                        handleChange(e.target.name, e.target.value)
+                      }
+                      onBlur={(e) =>
+                        handleOnBlur(e.target.name, e.target.value)
+                      }
+                      error={!!formData.privilege.error}
+                      fullWidth
+                      inputProps={{ min: 0 }}
+                    />
+
+                    {formData.privilege.error && (
+                      <MDTypography variant="caption" color="error">
+                        {formData.privilege.error}
+                      </MDTypography>
+                    )}
+                  </Grid>
+
+                  <Grid item xs={6}>
                     <RequiredLabel required>Employee Name</RequiredLabel>
 
                     <MDInput
@@ -1099,7 +1215,7 @@ function UsersListing() {
                       }
                       error={!!formData.empName.error}
                       fullWidth
-                      inputProps={{ maxLength: 255 }}
+                      inputProps={{ maxLength: 100 }}
                     />
 
                     {formData.empName.error && (
@@ -1108,7 +1224,7 @@ function UsersListing() {
                       </MDTypography>
                     )}
                   </Grid>
-                  <Grid item xs={12}>
+                  <Grid item xs={6}>
                     <RequiredLabel required>Select City</RequiredLabel>
 
                     <FormControl
@@ -1155,7 +1271,7 @@ function UsersListing() {
                     )}
                   </Grid>
 
-                  <Grid item xs={12}>
+                  <Grid item xs={6}>
                     <RequiredLabel required>Select Role</RequiredLabel>
                     <Autocomplete
                       {...autoCompleteProps}
@@ -1182,7 +1298,7 @@ function UsersListing() {
                     />
                   </Grid>
 
-                  <Grid item xs={12}>
+                  <Grid item xs={6}>
                     <RequiredLabel>Status</RequiredLabel>
                     <RadioGroup
                       row

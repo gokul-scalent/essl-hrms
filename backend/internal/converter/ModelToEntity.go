@@ -16,6 +16,7 @@ func UserModelToUserEntity(m model.User) entity.User {
 		Password:      m.Password.String,
 		IsPasswordSet: m.IsPasswordSet,
 		Status:        m.Status.String,
+		BiometricSync: m.BiometricSync,
 		LastLoginAt:   m.LastLoginAt.Time,
 		SessionToken:  m.SessionToken.String,
 		CreatedAt:     m.CreatedAt.Time,

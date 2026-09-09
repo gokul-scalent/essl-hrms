@@ -13,6 +13,7 @@ type UserResponse struct {
 	ID            int            `json:"ID"`
 	Email         string         `json:"email"`
 	City          string         `json:"city"`
+	BiometricSync bool           `json:"biometricSync"`
 	Status        string         `json:"status"`
 	IsPasswordSet string         `json:"isPasswordSet,omitempty"`
 	LastLoginAt   *time.Time     `json:"lastLoginAt"`

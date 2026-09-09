@@ -61,7 +61,7 @@ func (r *EmployeeRepoImpl) CreateEmployee(ctx context.Context, employee entity.E
 
 	// STEP 2: Create user
 	userQuery := `
-		INSERT INTO users (	email,	password, is_password_set,	status,	empname	) VALUES (?, ?, ?, ?, ?)
+		INSERT INTO users (	email,	password, is_password_set,	status,	empname, biometric_sync	) VALUES (?, ?, ?, ?, ?, ?)
 	`
 	userResult, err := tx.Exec(
 		userQuery,
@@ -70,6 +70,7 @@ func (r *EmployeeRepoImpl) CreateEmployee(ctx context.Context, employee entity.E
 		"NO",             // is_password_set
 		"INACTIVE",       // status
 		employee.EmpName, // empname
+		1,                //biometric for user
 	)
 
 	if err != nil {
@@ -164,10 +165,9 @@ func (r *EmployeeRepoImpl) CreateEmployee(ctx context.Context, employee entity.E
 			emp_name,
 			privilege,
 			password,
-			group_id,
-			card
+			group_id
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?)
 	`
 	employeeResult, err := tx.Exec(
 		employeeQuery,
@@ -177,7 +177,6 @@ func (r *EmployeeRepoImpl) CreateEmployee(ctx context.Context, employee entity.E
 		employee.Privilege,
 		employee.Password,
 		employee.GroupID,
-		employee.Card,
 	)
 
 	if err != nil {
@@ -470,4 +469,103 @@ func (r *EmployeeRepoImpl) GetEmployeeDetails(ctx context.Context, selectColumns
 
 	log.Info("core>repo>employee: GetEmployeeDetails completed", reqID)
 	return &employeeEntity, nil
+}
+
+func (r *EmployeeRepoImpl) CreateEmployeeForUser(ctx context.Context, employee entity.Employee) (int, errors.Response) {
+	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
+	log.Info("core>repo>employee: CreateEmployeeForUser started", reqID)
+
+	tx, err := r.db.Beginx()
+	if err != nil {
+		log.Error("failed to begin transaction: "+err.Error(), reqID)
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	committed := false
+
+	defer func() {
+		if !committed {
+			if rollbackErr := tx.Rollback(); rollbackErr != nil {
+				log.Error("transaction rollback failed: "+rollbackErr.Error(), reqID)
+			}
+		}
+	}()
+
+	// User must already exist.
+	var userCount int
+	err = tx.Get(
+		&userCount,
+		`
+		SELECT COUNT(*)
+		FROM users
+		WHERE id = ?
+		AND deleted_at IS NULL
+		`,
+		employee.UID,
+	)
+
+	if err != nil {
+		log.Error("failed to verify user: "+err.Error(), reqID)
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	if userCount != 1 {
+		log.Error("user not found for employee UID="+strconv.Itoa(employee.UID), reqID)
+		return 0, errors.ResponseBadRequestError("User not found")
+	}
+
+	// Create employee using existing users.id
+	employeeQuery := `
+		INSERT INTO employees (	uid,emp_id,	emp_name, privilege,	password, group_id) VALUES (?, ?, ?, ?, ?, ?)
+	`
+	employeeResult, err := tx.Exec(employeeQuery, employee.UID, employee.EmpID, employee.EmpName, employee.Privilege, employee.Password, employee.GroupID)
+
+	if err != nil {
+		log.Error("failed to create employee: "+err.Error(), reqID)
+
+		if mysqlErr, ok := err.(*mysql.MySQLError); ok {
+			if mysqlErr.Number == 1062 {
+				return 0, errors.ResponseBadRequestError("Employee ID already exists")
+			}
+		}
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	employeeID, err := employeeResult.LastInsertId()
+	if err != nil {
+		log.Error("failed to get generated employee id: "+err.Error(), reqID)
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	// Verify employee
+	var employeeCount int
+	err = tx.Get(
+		&employeeCount,
+		`
+		SELECT COUNT(*)
+		FROM employees
+		WHERE id = ?
+		AND uid = ?
+		`,
+		employeeID,
+		employee.UID,
+	)
+
+	if err != nil {
+		log.Error("failed to verify employee insert: "+err.Error(), reqID)
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	if employeeCount != 1 {
+		log.Error("employee was not found after INSERT", reqID)
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	if err := tx.Commit(); err != nil {
+		log.Error("failed to commit CreateEmployeeForUser transaction: "+err.Error(), reqID)
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+	committed = true
+	log.Info("CreateEmployeeForUser completed: employeeID="+strconv.Itoa(int(employeeID))+", uid="+strconv.Itoa(employee.UID), reqID)
+	return int(employeeID), nil
 }

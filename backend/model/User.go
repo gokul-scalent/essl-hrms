@@ -22,6 +22,7 @@ type User struct {
 	CreatedAt     sql.NullTime   `db:"created_at"`
 	UpdatedAt     sql.NullTime   `db:"updated_at"`
 	DeletedAt     sql.NullTime   `db:"deleted_at"`
+	BiometricSync bool           `db:"biometric_sync"`
 }
 
 var UserModelMap = map[string]FieldStruct{
@@ -43,4 +44,5 @@ var UserModelMap = map[string]FieldStruct{
 	"EmpID":         {MySQLDatatype: "varchar", FieldName: "e.emp_id"},
 	"EmpName":       {MySQLDatatype: "varchar", FieldName: "e.emp_name"},
 	"City":          {MySQLDatatype: "enum", FieldName: "u.city"},
+	"BiometricSync": {MySQLDatatype: "tinyint", FieldName: "u.biometric_sync"},
 }

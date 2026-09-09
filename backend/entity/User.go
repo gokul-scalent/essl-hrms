@@ -13,11 +13,13 @@ type User struct {
 	RoleStatus    []string
 	Roles         []Role
 	City          string
+	BiometricSync bool
 	Status        string
 	LastLoginAt   time.Time
 	SessionToken  string
 	EmpID         string
 	EmpName       string
+	Privilege     int
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	DeletedAt     time.Time

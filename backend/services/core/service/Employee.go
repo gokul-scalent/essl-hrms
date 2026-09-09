@@ -104,3 +104,16 @@ func (s *EmployeeServiceImpl) ListEmployee(ctx context.Context, filter *filters.
 	log.Info("core>service>employee: employee list completed", reqID)
 	return totalRecords, employeesEntity, nil
 }
+
+func (s *EmployeeServiceImpl) CreateEmployeeForUser(ctx context.Context, employee entity.Employee) (int, errors.Response) {
+	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
+	log.Info("core>service>employee: CreateEmployeeForUser started", reqID)
+	employeeID, errResp := s.employeeRepo.CreateEmployeeForUser(ctx, employee)
+
+	if errResp != nil {
+		log.Error(errResp.Error(), reqID)
+		return 0, errResp
+	}
+	log.Info("core>service>employee: CreateEmployeeForUser completed & employee id is "+strconv.Itoa(employeeID), reqID)
+	return employeeID, nil
+}

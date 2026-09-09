@@ -30,6 +30,7 @@ type UserService interface {
 
 type EmployeeService interface {
 	CreateEmployee(ctx context.Context, employee entity.Employee) (int, errors.Response)
+	CreateEmployeeForUser(ctx context.Context, employee entity.Employee) (int, errors.Response)
 	PartialUpdateEmployee(ctx context.Context, employee entity.Employee) errors.Response
 	UpdateEmployee(ctx context.Context, employee entity.Employee) errors.Response
 	DeleteEmployee(ctx context.Context, employeeID int) errors.Response

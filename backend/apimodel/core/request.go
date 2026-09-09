@@ -10,11 +10,13 @@ type LoginRequest struct {
 }
 
 type CreateUser struct {
-	Email   string `json:"email" binding:"required,email"`
-	EmpName string `json:"empName" binding:"required"`
-	City    string `json:"city" binding:"required,oneof=NASHIK PUNE"`
-	Status  string `json:"status" binding:"omitempty,oneof=ACTIVE INACTIVE"`
-	RoleIDs []int  `json:"roleIDs" binding:"required"`
+	Email     string `json:"email" binding:"required,email"`
+	EmpName   string `json:"empName" binding:"required"`
+	City      string `json:"city" binding:"required,oneof=NASHIK PUNE"`
+	Status    string `json:"status" binding:"omitempty,oneof=ACTIVE INACTIVE"`
+	RoleIDs   []int  `json:"roleIDs" binding:"required"`
+	EmpID     string `json:"empID" binding:"required"`
+	Privilege int    `json:"privilege" binding:"omitempty"`
 }
 type User struct {
 	Email        string     `json:"email" binding:"omitempty"`
@@ -34,6 +36,8 @@ type UpdateUserRequest struct {
 	LastLoginAt  time.Time `json:"lastLoginAt" binding:"omitempty"`
 	SessionToken string    `json:"sessionToken" binding:"omitempty"`
 	RoleIDs      []int     `json:"roleIDs" binding:"omitempty"`
+	EmpID        string    `json:"empID" binding:"omitempty"`
+	Privilege    int       `json:"privilege" binding:"omitempty"`
 }
 type ChangePasswordRequest struct {
 	OldPassword     string `json:"oldPassword" binding:"required,min=8"`

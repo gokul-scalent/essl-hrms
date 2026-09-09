@@ -12,6 +12,7 @@ func UserEntityToUserAPIModelResponse(user entity.User) apimodel.UserResponse {
 		Email:         user.Email,
 		Status:        user.Status,
 		City:          user.City,
+		BiometricSync: user.BiometricSync,
 		IsPasswordSet: user.IsPasswordSet,
 		EmpID:         user.EmpID,
 		EmpName:       user.EmpName,

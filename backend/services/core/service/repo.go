@@ -42,6 +42,7 @@ type EmployeeRepo interface {
 	GetEmployeebyID(ctx context.Context, employeeID int) (entity.Employee, errors.Response)
 	ListEmployee(ctx context.Context, filter *filters.ListFilter) (int, []entity.Employee, errors.Response)
 	GetEmployeeDetails(ctx context.Context, selectColumns []string, table string, whereColumn []string, args []interface{}) (*entity.Employee, errors.Response)
+	CreateEmployeeForUser(ctx context.Context, employee entity.Employee) (int, errors.Response)
 }
 
 type AttendanceLogRepo interface {

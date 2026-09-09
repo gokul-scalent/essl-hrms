@@ -50,8 +50,16 @@ func initServer(config2 *CoreConfig) (*web.CoreHandlerRegistry, error) {
 	if err != nil {
 		return nil, err
 	}
+	employeeRepoImpl, err := repo.NewEmployeeRepoImpl(db)
+	if err != nil {
+		return nil, err
+	}
+	employeeServiceImpl, err := service.NewEmployeeServiceImpl(employeeRepoImpl)
+	if err != nil {
+		return nil, err
+	}
 	serviceConfig := NewServiceConfig()
-	userServiceImpl, err := service.NewUserServiceImpl(userRepoImpl, serviceConfig)
+	userServiceImpl, err := service.NewUserServiceImpl(userRepoImpl, employeeServiceImpl, serviceConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -60,14 +68,6 @@ func initServer(config2 *CoreConfig) (*web.CoreHandlerRegistry, error) {
 		return nil, err
 	}
 	loginServiceImpl, err := service.NewLoginServiceImpl(loginRepoImpl, authImpl, userRepoImpl)
-	if err != nil {
-		return nil, err
-	}
-	employeeRepoImpl, err := repo.NewEmployeeRepoImpl(db)
-	if err != nil {
-		return nil, err
-	}
-	employeeServiceImpl, err := service.NewEmployeeServiceImpl(employeeRepoImpl)
 	if err != nil {
 		return nil, err
 	}

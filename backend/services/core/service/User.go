@@ -20,14 +20,16 @@ import (
 )
 
 type UserServiceImpl struct {
-	userRepo UserRepo
-	config   Config
+	userRepo        UserRepo
+	employeeService EmployeeService //added emp service to send insert records
+	config          Config
 }
 
-func NewUserServiceImpl(userRepo UserRepo, config Config) (*UserServiceImpl, error) {
+func NewUserServiceImpl(userRepo UserRepo, employeeService EmployeeService, config Config) (*UserServiceImpl, error) {
 	return &UserServiceImpl{
-		userRepo: userRepo,
-		config:   config,
+		userRepo:        userRepo,
+		employeeService: employeeService,
+		config:          config,
 	}, nil
 }
 
@@ -73,7 +75,19 @@ func (s *UserServiceImpl) CreateUser(ctx context.Context, user entity.User) (int
 		log.Error(errResp.Error(), reqID)
 		return 0, errResp
 	}
+	//insert the new user to employee table
+	employee := entity.Employee{
+		UID:       userID,
+		EmpID:     user.EmpID,
+		EmpName:   user.EmpName,
+		Privilege: user.Privilege,
+	}
 
+	_, errResp = s.employeeService.CreateEmployeeForUser(ctx, employee)
+	if errResp != nil {
+		log.Error("Failed to create employee: "+errResp.Error(), reqID)
+		return 0, errResp
+	}
 	if user.RoleIDs != nil {
 		for _, roleID := range user.RoleIDs {
 
@@ -81,22 +95,14 @@ func (s *UserServiceImpl) CreateUser(ctx context.Context, user entity.User) (int
 				continue
 			}
 
-			errResp = s.userRepo.AssignUserRole(
-				ctx,
-				userID,
-				roleID,
-			)
-
+			errResp = s.userRepo.AssignUserRole(ctx, userID, roleID)
 			if errResp != nil {
 				log.Error(errResp.Error(), reqID)
 				return 0, errResp
 			}
 		}
 	}
-	log.Info(
-        "CreateUser roleIDs="+fmt.Sprintf("%v", user.RoleIDs),
-        reqID,
-    )
+	log.Info("CreateUser roleIDs="+fmt.Sprintf("%v", user.RoleIDs), reqID)
 	// Send welcome email-
 	if s.config.IsEmailSendingEnabled == "ACTIVE" {
 
