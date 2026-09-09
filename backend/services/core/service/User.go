@@ -188,13 +188,18 @@ func (s *UserServiceImpl) PartialUpdateUser(ctx context.Context, user entity.Use
 		return errResp
 	}
 
-	// Update employee name
-	if user.EmpName != "" {
-		errResp = s.userRepo.UpdateEmployeeName(ctx, user.ID, user.EmpName)
-		if errResp != nil {
-			log.Error(errResp.Error(), reqID)
-			return errResp
-		}
+	// Update employee details  empID, empName and privilege are stored in employees table.
+	errResp = s.userRepo.UpdateEmployeeDetails(
+		ctx,
+		user.ID,
+		user.EmpID,
+		user.EmpName,
+		user.Privilege,
+	)
+
+	if errResp != nil {
+		log.Error("failed to update employee details: "+errResp.Error(), reqID)
+		return errResp
 	}
 
 	if user.RoleIDs != nil {

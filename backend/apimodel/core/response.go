@@ -20,6 +20,7 @@ type UserResponse struct {
 	Roles         []RoleResponse `json:"roles,omitempty"`
 	EmpID         string         `json:"empID,omitempty"`
 	EmpName       string         `json:"empName,omitempty"`
+	Privilege     int            `json:"privilege"`
 }
 
 type UserListResponse struct {

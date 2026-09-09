@@ -89,6 +89,8 @@ func UpdateUserAPIRequestToUserEntity(request *coreAPIModel.UpdateUserRequest) e
 		LastLoginAt:  request.LastLoginAt,
 		SessionToken: request.SessionToken,
 		RoleIDs:      request.RoleIDs,
+		EmpID:        request.EmpID,
+		Privilege:    request.Privilege,
 	}
 
 	return e

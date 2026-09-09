@@ -32,6 +32,7 @@ type UserRepo interface {
 	ChangePassword(ctx context.Context, password string, userID int) errors.Response
 	UpdateUserPassword(ctx context.Context, userID int, hashedPassword string) errors.Response
 	UpdateUserRoles(ctx context.Context, userID int, roleIDs []int) errors.Response
+	UpdateEmployeeDetails(ctx context.Context, userID int, empID string, empName string, privilege int) errors.Response
 }
 
 type EmployeeRepo interface {

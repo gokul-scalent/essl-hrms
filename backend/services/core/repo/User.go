@@ -166,11 +166,7 @@ func (r *UserRepoImpl) DeleteUser(ctx context.Context, userID int) errors.Respon
 func (r *UserRepoImpl) GetUserbyID(ctx context.Context, userID int) (entity.User, errors.Response) {
 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
 
-	log.Info(
-		"core>repo>user: GetUserbyID started for user id "+
-			strconv.Itoa(userID),
-		reqID,
-	)
+	log.Info("core>repo>user: GetUserbyID started for user id "+strconv.Itoa(userID), reqID)
 
 	query := `
 		SELECT
@@ -202,6 +198,7 @@ func (r *UserRepoImpl) GetUserbyID(ctx context.Context, userID int) (entity.User
 
 			e.emp_id AS emp_id,
 			COALESCE(e.emp_name, u.empname) AS emp_name,
+			COALESCE(e.privilege, 0) AS privilege,
 			u.city AS city,
 			u.biometric_sync,
 			u.last_login_at,
@@ -236,6 +233,7 @@ func (r *UserRepoImpl) GetUserbyID(ctx context.Context, userID int) (entity.User
 			u.status,
 			e.emp_id,
 			e.emp_name,
+			e.privilege,
 			u.city,
 			u.biometric_sync,
 			u.last_login_at,
@@ -296,6 +294,7 @@ func (r *UserRepoImpl) ListUser(ctx context.Context, filter *filters.ListFilter)
 
 			e.emp_id AS emp_id,
 			COALESCE(e.emp_name, u.empname) AS emp_name,
+			COALESCE(e.privilege, 0) AS privilege,
 			u.city AS city,
 			u.biometric_sync,
 			u.last_login_at,
@@ -391,6 +390,7 @@ func (r *UserRepoImpl) ListUser(ctx context.Context, filter *filters.ListFilter)
 			u.status,
 			e.emp_id,
 			e.emp_name,
+			e.privilege ,
 			u.city,
 			u.last_login_at,
 			u.session_token,
@@ -676,5 +676,61 @@ func (r *UserRepoImpl) UpdateUserRoles(ctx context.Context, userID int, roleIDs 
 	}
 
 	log.Info("core>repo>user: UpdateUserRoles completed for user id "+strconv.Itoa(userID), reqID)
+	return nil
+}
+
+func (r *UserRepoImpl) UpdateEmployeeDetails(ctx context.Context, userID int, empID string, empName string, privilege int) errors.Response {
+	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
+	log.Info("core>repo>user: UpdateEmployeeDetails started for user id "+strconv.Itoa(userID), reqID)
+
+	log.Info("core>repo>user: Employee update data - "+"empID="+empID+", empName="+empName+", privilege="+strconv.Itoa(privilege), reqID)
+	var columns []string
+	var args []interface{}
+
+	// Update employee ID only when provided
+	if empID != "" {
+		columns = append(columns, "emp_id = ?")
+		args = append(args, empID)
+	}
+
+	// Update employee name only when provided
+	if empName != "" {
+		columns = append(columns, "emp_name = ?")
+		args = append(args, empName)
+	}
+
+	// Update privilege only when non-zero
+	if privilege != 0 {
+		columns = append(columns, "privilege = ?")
+		args = append(args, privilege)
+	}
+
+	// Nothing to update
+	if len(columns) == 0 {
+		log.Info("core>repo>user: No employee fields to update for user id "+strconv.Itoa(userID), reqID)
+		return nil
+	}
+
+	query := `
+		UPDATE employees
+		SET ` + strings.Join(columns, ", ") + `
+		WHERE uid = ?
+		AND deleted_at IS NULL
+	`
+
+	args = append(args, userID)
+
+	_, err := r.db.Exec(query, args...)
+	if err != nil {
+		log.Error("failed to update employee details: "+err.Error(), reqID)
+
+		if mysqlErr, ok := err.(*mysql.MySQLError); ok &&
+			mysqlErr.Number == 1062 {
+			return errors.ResponseBadRequestError("Employee ID already exists")
+		}
+		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	log.Info("core>repo>user: UpdateEmployeeDetails completed for user id "+strconv.Itoa(userID), reqID)
 	return nil
 }
