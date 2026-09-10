@@ -60,6 +60,7 @@ func UserAPIToUserEntity(request *coreAPIModel.User) entity.User {
 		Status:        request.Status,
 		LastLoginAt:   lastLoginAt,
 		SessionToken:  request.SessionToken,
+		RoleIDs:       request.RoleIDs,
 	}
 
 	return e
@@ -67,8 +68,13 @@ func UserAPIToUserEntity(request *coreAPIModel.User) entity.User {
 
 func CreateUserAPIToUserEntity(request *coreAPIModel.CreateUser) entity.User {
 	return entity.User{
-		Email:  request.Email,
-		Status: request.Status,
+		Email:     request.Email,
+		EmpName:   request.EmpName,
+		City:      request.City,
+		Status:    request.Status,
+		RoleIDs:   request.RoleIDs,
+		EmpID:     request.EmpID,
+		Privilege: request.Privilege,
 	}
 }
 
@@ -76,10 +82,15 @@ func UpdateUserAPIRequestToUserEntity(request *coreAPIModel.UpdateUserRequest) e
 	e := entity.User{
 
 		Email:        request.Email,
+		EmpName:      request.EmpName,
+		City:         request.City,
 		Password:     request.Password,
 		Status:       request.Status,
 		LastLoginAt:  request.LastLoginAt,
 		SessionToken: request.SessionToken,
+		RoleIDs:      request.RoleIDs,
+		EmpID:        request.EmpID,
+		Privilege:    request.Privilege,
 	}
 
 	return e

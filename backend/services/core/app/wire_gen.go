@@ -50,8 +50,16 @@ func initServer(config2 *CoreConfig) (*web.CoreHandlerRegistry, error) {
 	if err != nil {
 		return nil, err
 	}
+	employeeRepoImpl, err := repo.NewEmployeeRepoImpl(db)
+	if err != nil {
+		return nil, err
+	}
+	employeeServiceImpl, err := service.NewEmployeeServiceImpl(employeeRepoImpl)
+	if err != nil {
+		return nil, err
+	}
 	serviceConfig := NewServiceConfig()
-	userServiceImpl, err := service.NewUserServiceImpl(userRepoImpl, serviceConfig)
+	userServiceImpl, err := service.NewUserServiceImpl(userRepoImpl, employeeServiceImpl, serviceConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -63,19 +71,19 @@ func initServer(config2 *CoreConfig) (*web.CoreHandlerRegistry, error) {
 	if err != nil {
 		return nil, err
 	}
-	employeeRepoImpl, err := repo.NewEmployeeRepoImpl(db)
-	if err != nil {
-		return nil, err
-	}
-	employeeServiceImpl, err := service.NewEmployeeServiceImpl(employeeRepoImpl)
-	if err != nil {
-		return nil, err
-	}
 	attendanceLogRepoImpl, err := repo.NewAttendanceLogRepoImpl(db)
 	if err != nil {
 		return nil, err
 	}
 	attendanceLogServiceImpl, err := service.NewAttendanceLogServiceImpl(attendanceLogRepoImpl)
+	if err != nil {
+		return nil, err
+	}
+	roleRepoImpl, err := repo.NewRoleRepoImpl(db)
+	if err != nil {
+		return nil, err
+	}
+	roleServiceImpl, err := service.NewRoleServiceImpl(roleRepoImpl)
 	if err != nil {
 		return nil, err
 	}
@@ -96,6 +104,7 @@ func initServer(config2 *CoreConfig) (*web.CoreHandlerRegistry, error) {
 		EmployeeService:      employeeServiceImpl,
 		AttendanceLogService: attendanceLogServiceImpl,
 		CronService:          cronServiceImpl,
+		RoleService:          roleServiceImpl,
 	}
 	coreHandlerRegistry := web.NewCoreHandlerRegistry(coreHandlerRegistryOptions)
 	return coreHandlerRegistry, nil
@@ -104,3 +113,4 @@ func initServer(config2 *CoreConfig) (*web.CoreHandlerRegistry, error) {
 // wire.go:
 
 var CoreModuleSet = wire.NewSet(wire.FieldsOf(new(*CoreConfig), "server", "db", "Reacher"), NewCacheConfig, cache.NewRedisInstance, casbin.InitCasbin, sqlx.NewDBConn, NewServiceConfig, reacher.NewReacherClient, wire.Struct(new(web.CoreHandlerRegistryOptions), "*"), web.NewCoreHandlerRegistry, auth.NewAuthImpl, middleware.NewMiddlewareImpl, wire.Bind(new(middleware.Middleware), new(*middleware.MiddlewareImpl)), repo.NewHomeRepoImpl, wire.Bind(new(service.HomeRepo), new(*repo.HomeRepoImpl)), service.NewHomeServiceImpl, wire.Bind(new(service.HomeService), new(*service.HomeServiceImpl)), repo.NewUserRepoImpl, wire.Bind(new(service.UserRepo), new(*repo.UserRepoImpl)), service.NewUserServiceImpl, wire.Bind(new(service.UserService), new(*service.UserServiceImpl)), repo.NewLoginRepoImpl, wire.Bind(new(service.LoginRepo), new(*repo.LoginRepoImpl)), service.NewLoginServiceImpl, wire.Bind(new(service.LoginService), new(*service.LoginServiceImpl)), repo.NewEmployeeRepoImpl, wire.Bind(new(service.EmployeeRepo), new(*repo.EmployeeRepoImpl)), service.NewEmployeeServiceImpl, wire.Bind(new(service.EmployeeService), new(*service.EmployeeServiceImpl)), repo.NewAttendanceLogRepoImpl, wire.Bind(new(service.AttendanceLogRepo), new(*repo.AttendanceLogRepoImpl)), service.NewAttendanceLogServiceImpl, wire.Bind(new(service.AttendanceLogService), new(*service.AttendanceLogServiceImpl)), repo.NewCronRepoImpl, wire.Bind(new(service.CronRepo), new(*repo.CronRepoImpl)), service.NewCronServiceImpl, wire.Bind(new(service.CronService), new(*service.CronServiceImpl)))
+var CoreModuleSet = wire.NewSet(wire.FieldsOf(new(*CoreConfig), "server", "db", "Reacher"), NewCacheConfig, cache.NewRedisInstance, casbin.InitCasbin, sqlx.NewDBConn, NewServiceConfig, reacher.NewReacherClient, wire.Struct(new(web.CoreHandlerRegistryOptions), "*"), web.NewCoreHandlerRegistry, auth.NewAuthImpl, middleware.NewMiddlewareImpl, wire.Bind(new(middleware.Middleware), new(*middleware.MiddlewareImpl)), repo.NewHomeRepoImpl, wire.Bind(new(service.HomeRepo), new(*repo.HomeRepoImpl)), service.NewHomeServiceImpl, wire.Bind(new(service.HomeService), new(*service.HomeServiceImpl)), repo.NewUserRepoImpl, wire.Bind(new(service.UserRepo), new(*repo.UserRepoImpl)), service.NewUserServiceImpl, wire.Bind(new(service.UserService), new(*service.UserServiceImpl)), repo.NewLoginRepoImpl, wire.Bind(new(service.LoginRepo), new(*repo.LoginRepoImpl)), service.NewLoginServiceImpl, wire.Bind(new(service.LoginService), new(*service.LoginServiceImpl)), repo.NewEmployeeRepoImpl, wire.Bind(new(service.EmployeeRepo), new(*repo.EmployeeRepoImpl)), service.NewEmployeeServiceImpl, wire.Bind(new(service.EmployeeService), new(*service.EmployeeServiceImpl)), repo.NewAttendanceLogRepoImpl, wire.Bind(new(service.AttendanceLogRepo), new(*repo.AttendanceLogRepoImpl)), service.NewAttendanceLogServiceImpl, wire.Bind(new(service.AttendanceLogService), new(*service.AttendanceLogServiceImpl)), repo.NewRoleRepoImpl, wire.Bind(new(service.RoleRepo), new(*repo.RoleRepoImpl)), service.NewRoleServiceImpl, wire.Bind(new(service.RoleService), new(*service.RoleServiceImpl)))

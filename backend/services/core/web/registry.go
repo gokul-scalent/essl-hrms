@@ -22,6 +22,7 @@ type CoreHandlerRegistryOptions struct {
 	EmployeeService      coreService.EmployeeService
 	AttendanceLogService coreService.AttendanceLogService
 	CronService          coreService.CronService
+	RoleService          coreService.RoleService
 }
 
 type CoreHandlerRegistry struct {
@@ -84,6 +85,13 @@ func (h CoreHandlerRegistry) registerRoutes() (*gin.Engine, error) {
 	// Keep cron endpoint public (no authorization middleware).
 	cronRouter := coreRouter.Group("/cron")
 	cronRouter.POST("/calculate-working-hours", h.CalculateWorkingHoursHandler)
+	coreRouter.Use(h.Options.Middleware.Access())
+
+	roleRouter := coreRouter.Group("/role")
+	roleRouter.GET("/list", h.GetRolesHandler)
+	roleRouter.GET("/:id", h.GetRoleByIDHandler)
+
+	coreRouter.POST("/logout", h.LogOutHandler)
 
 	protectedRouter := coreRouter.Group("")
 	protectedRouter.Use(h.Options.Middleware.Access())
@@ -97,6 +105,7 @@ func (h CoreHandlerRegistry) registerRoutes() (*gin.Engine, error) {
 	userRouter.GET("/:id", h.GetUserbyIDHandler)
 	userRouter.GET("/list", h.ListUserHandler)
 	userRouter.PATCH("/change-password", h.ChangePasswordHandler)
+	userRouter.POST("/:id/send-mail", h.SendUserMailHandler)
 
 	//---add the following line above in CoreHandlerRegistryOptions struct
 	//---UserService  coreService.UserService

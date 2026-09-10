@@ -24,6 +24,7 @@ type HomeRepo interface {
 type UserRepo interface {
 	CreateUser(ctx context.Context, user entity.User) (int, errors.Response)
 	PartialUpdateUser(ctx context.Context, user entity.User) errors.Response
+	UpdateEmployeeName(ctx context.Context, userID int, empName string) errors.Response
 	UpdateUser(ctx context.Context, user entity.User) errors.Response
 	DeleteUser(ctx context.Context, userID int) errors.Response
 	GetUserbyID(ctx context.Context, userID int) (entity.User, errors.Response)
@@ -31,6 +32,9 @@ type UserRepo interface {
 	GetUserDetails(ctx context.Context, selectColumns []string, table string, whereColumn []string, args []interface{}) (*entity.User, errors.Response)
 	AssignUserRole(ctx context.Context, userID int, roleID int) errors.Response
 	ChangePassword(ctx context.Context, password string, userID int) errors.Response
+	UpdateUserPassword(ctx context.Context, userID int, hashedPassword string) errors.Response
+	UpdateUserRoles(ctx context.Context, userID int, roleIDs []int) errors.Response
+	UpdateEmployeeDetails(ctx context.Context, userID int, empID string, empName string, privilege int) errors.Response
 }
 
 type EmployeeRepo interface {
@@ -41,6 +45,7 @@ type EmployeeRepo interface {
 	GetEmployeebyID(ctx context.Context, employeeID int) (entity.Employee, errors.Response)
 	ListEmployee(ctx context.Context, filter *filters.ListFilter) (int, []entity.Employee, errors.Response)
 	GetEmployeeDetails(ctx context.Context, selectColumns []string, table string, whereColumn []string, args []interface{}) (*entity.Employee, errors.Response)
+	CreateEmployeeForUser(ctx context.Context, employee entity.Employee) (int, errors.Response)
 }
 
 type AttendanceLogRepo interface {
@@ -70,6 +75,11 @@ type CronRepo interface {
 	InsertSynthesizedAttendanceLogs(ctx context.Context, logs []entity.AttendanceLog) errors.Response
 
 	UpsertWorkingHoursSummaries(ctx context.Context, summaries []entity.WorkingHoursSummary) errors.Response
+}
+
+type RoleRepo interface {
+	GetRoles(ctx context.Context) ([]entity.Role, errors.Response)
+	GetRoleByID(ctx context.Context, id int) (*entity.Role, errors.Response)
 }
 
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
+  Autocomplete,
   Card,
   FormControl,
   FormControlLabel,
@@ -23,25 +24,32 @@ import {
   wrapCell,
   formatDateTime,
   radioLabelSx,
+  autoCompleteProps,
+  selectSx,
 } from "components/CommonComponent/CommonFunction";
-import { DEFAULT_RECORDS_PER_PAGE } from "components/common/constant";
 import {
   getUsersList,
   updateUserDetail,
   addUser,
   getUserDetailById,
   deleteUser,
+  sendMail,
 } from "actions/users";
 import { userList } from "constants/users";
 import CenterPopup from "components/CommonComponent/CenterPopup";
 import RequiredLabel from "components/CommonComponent/RequiredLabel";
 import MDBadge from "components/MDBadge";
-import { REGEX } from "components/common/constant";
+import {
+  DEFAULT_RECORDS_PER_PAGE,
+  REGEX,
+  STATUS,
+  CITY,
+} from "components/common/constant";
 import { useNotify } from "components/CommonComponent/NotificationProvider";
 import { showAlert } from "components/CommonComponent/ShowAlert";
-import { selectSx } from "components/CommonComponent/CommonFunction";
 import { ArrowDropDown } from "@mui/icons-material";
-import { STATUS } from "components/common/constant";
+import { getRoleListing } from "actions/role";
+import { roleList } from "constants/role";
 
 const initialFields = {
   id: "",
@@ -50,15 +58,41 @@ const initialFields = {
     original: "",
     error: "",
   },
+  empID: {
+    value: "",
+    original: "",
+    error: "",
+  },
+  empName: {
+    value: "",
+    original: "",
+    error: "",
+  },
+  privilege: {
+    value: 0,
+    original: 0,
+    error: "",
+  },
+  role: {
+    value: [],
+    original: [],
+    error: "",
+  },
+  city: {
+    value: "",
+    original: "",
+    error: "",
+  },
   status: {
-    value: "ACTIVE",
-    original: "ACTIVE",
+    value: "INACTIVE",
+    original: "INACTIVE",
     error: "",
   },
 };
 function UsersListing() {
   const dispatch = useDispatch();
   const userListData = useSelector((state) => state.users.userList);
+  const roleListData = useSelector((state) => state.role.roleList);
   const { notify } = useNotify();
   const [listState, setListState] = useState({
     isLoading: true,
@@ -69,6 +103,8 @@ function UsersListing() {
   const [filterState, setFilterState] = useState({
     searchString: "",
     status: null,
+    role: null,
+    city: null,
     filterParams: {
       filters: [],
       searchString: "",
@@ -77,6 +113,13 @@ function UsersListing() {
   const [formData, setFormData] = useState(initialFields);
   const [panelMode, setPanelMode] = useState(null); //add /edit
   const [pageNum, setPageNum] = useState(1);
+
+  useEffect(() => {
+    getRoleListing(dispatch);
+    return () => {
+      dispatch({ type: roleList, payload: {} });
+    };
+  }, [dispatch]);
 
   useEffect(() => {
     getUsersList(
@@ -125,8 +168,12 @@ function UsersListing() {
           (userListData?.data?.noOfRecordsPerPage || DEFAULT_RECORDS_PER_PAGE) +
         index +
         1,
+      empID: item?.empID || "-",
       email: item?.email || "-",
-      status: item?.status || "ACTIVE",
+      empName: item?.empName || "-",
+      roles: item?.roles || [],
+      status: item?.status || "INACTIVE",
+      city: item?.city || "-",
       lastLoginAt: item?.lastLoginAt || null,
     })) || [];
 
@@ -165,6 +212,52 @@ function UsersListing() {
       Cell: (cell) => wrapCell(cell.value || "-", "200px"),
     },
     {
+      Header: "Employee ID",
+      accessor: "empID",
+      align: "left",
+      width: "100px",
+      Cell: (cell) => wrapCell(cell.value || "-", "100px"),
+    },
+    {
+      Header: "Employee Name",
+      accessor: "empName",
+      align: "left",
+      width: "200px",
+      Cell: (cell) => wrapCell(cell.value || "-", "200px"),
+    },
+    {
+      Header: "Privilege",
+      accessor: "privilege",
+      align: "left",
+      width: "100px",
+    },
+    {
+      Header: "Roles",
+      accessor: "roles",
+      id: "roles",
+      Cell: ({ value }) => {
+        if (!value || value.length === 0) {
+          return "-";
+        }
+        if (value.length === 1) {
+          return value[0].name;
+        }
+        return (
+          <ul style={{ margin: 0, paddingLeft: "18px" }}>
+            {value.map((role) => (
+              <li key={role.ID}>{role.name}</li>
+            ))}
+          </ul>
+        );
+      },
+    },
+    {
+      Header: "City",
+      accessor: "city",
+      align: "left",
+      width: "100px",
+    },
+    {
       Header: "Status",
       accessor: "status",
       align: "left",
@@ -175,7 +268,7 @@ function UsersListing() {
       Header: "Last Login At",
       accessor: "lastLoginAt",
       align: "left",
-      width: "120px",
+      width: "100px",
       Cell: (cell) => (cell.value ? formatDateTime(cell.value) : "-"),
     },
     {
@@ -194,6 +287,26 @@ function UsersListing() {
             justifyContent="center"
             gap={1}
           >
+            <Tooltip title="Send Mail" arrow>
+              <Icon
+                sx={({ palette }) => ({
+                  cursor: "pointer",
+                  color: palette.deepBlue.main,
+                })}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSendMail(rowData);
+                }}
+              >
+                <i class="fa-solid fa-paper-plane"></i>
+              </Icon>
+            </Tooltip>
+
+            <MDTypography variant="caption" mx={0.5}>
+              |
+            </MDTypography>
+
+            {/* Edit */}
             <Tooltip title="Edit" arrow>
               <Icon
                 sx={({ palette }) => ({
@@ -213,6 +326,7 @@ function UsersListing() {
               |
             </MDTypography>
 
+            {/* Delete */}
             <Tooltip title="Delete" arrow>
               <Icon
                 color="error"
@@ -269,12 +383,53 @@ function UsersListing() {
     const trimmedValue = typeof value === "string" ? value.trim() : value;
 
     switch (name) {
+      case "empID":
+        if (!trimmedValue) {
+          return "Employee ID is required.";
+        }
+        return "";
+
+      case "empName":
+        if (!trimmedValue) {
+          return "Employee name is required.";
+        }
+        return "";
+
       case "email":
         if (!trimmedValue) {
           return "Email is required.";
         }
         if (!REGEX.EMAIL_REGEX.test(trimmedValue)) {
           return "Please enter a valid email address.";
+        }
+        return "";
+
+      case "privilege":
+        if (
+          trimmedValue === "" ||
+          trimmedValue === null ||
+          trimmedValue === undefined
+        ) {
+          return "";
+        }
+        if (!Number.isInteger(Number(trimmedValue))) {
+          return "Privilege must be a valid number.";
+        }
+
+        if (Number(trimmedValue) < 0) {
+          return "Privilege cannot be negative.";
+        }
+        return "";
+
+      case "role":
+        if (!Array.isArray(trimmedValue) || trimmedValue.length === 0) {
+          return "At least one role is required.";
+        }
+        return "";
+
+      case "city":
+        if (!trimmedValue) {
+          return "City is required.";
         }
         return "";
 
@@ -299,9 +454,35 @@ function UsersListing() {
 
         const field = formData[key];
 
+        if (key === "role") {
+          const currentRoleIDs = (field.value || [])
+            .map((role) => role.id)
+            .filter(Boolean);
+
+          const originalRoleIDs = (field.original || [])
+            .map((role) => role.id)
+            .filter(Boolean);
+
+          const rolesChanged =
+            JSON.stringify([...currentRoleIDs].sort()) !==
+            JSON.stringify([...originalRoleIDs].sort());
+
+          if (panelMode !== "edit" || rolesChanged) {
+            payload.roleIDs = currentRoleIDs;
+          }
+
+          return;
+        }
+
         if (panelMode !== "edit" || field.value !== field.original) {
-          payload[key] =
-            typeof field.value === "string" ? field.value.trim() : field.value;
+          if (key === "privilege") {
+            payload[key] = Number(field.value);
+          } else {
+            payload[key] =
+              typeof field.value === "string"
+                ? field.value.trim()
+                : field.value;
+          }
         }
       });
 
@@ -310,6 +491,7 @@ function UsersListing() {
         notify("No changes detected", "info");
         return;
       }
+
       const res =
         panelMode === "edit"
           ? await updateUserDetail(formData.id, payload)
@@ -325,7 +507,7 @@ function UsersListing() {
         );
 
         closeModal();
-        // Refresh users list
+
         getUsersList(
           dispatch,
           pageNum,
@@ -400,6 +582,22 @@ function UsersListing() {
       });
     }
 
+    if (filterState.role) {
+      filterParams.push({
+        field: "RoleID",
+        condition: "eq",
+        filterValues: [String(filterState.role.id)],
+      });
+    }
+
+    if (filterState.city) {
+      filterParams.push({
+        field: "City",
+        condition: "eq",
+        filterValues: [filterState.city],
+      });
+    }
+
     return {
       filters: filterParams.length ? JSON.stringify(filterParams) : [],
       searchString: filterState.searchString.trim(),
@@ -410,6 +608,8 @@ function UsersListing() {
     setFilterState({
       searchString: "",
       status: null,
+      role: null,
+      city: null,
       filterParams: {
         filters: [],
         searchString: "",
@@ -426,14 +626,40 @@ function UsersListing() {
 
   const openAddModal = () => {
     setFormData({
+      id: "",
       email: {
         value: "",
         original: "",
         error: "",
       },
+      empID: {
+        value: "",
+        original: "",
+        error: "",
+      },
+      empName: {
+        value: "",
+        original: "",
+        error: "",
+      },
+      privilege: {
+        value: 0,
+        original: 0,
+        error: "",
+      },
+      role: {
+        value: [],
+        original: [],
+        error: "",
+      },
+      city: {
+        value: "",
+        original: "",
+        error: "",
+      },
       status: {
-        value: "ACTIVE",
-        original: "ACTIVE",
+        value: "INACTIVE",
+        original: "INACTIVE",
         error: "",
       },
     });
@@ -460,9 +686,45 @@ function UsersListing() {
             original: data?.email || "",
             error: "",
           },
+          empID: {
+            value: data?.empID || "",
+            original: data?.empID || "",
+            error: "",
+          },
+
+          privilege: {
+            value: data?.privilege ?? 0,
+            original: data?.privilege ?? 0,
+            error: "",
+          },
+          empName: {
+            value: data?.empName || "",
+            original: data?.empName || "",
+            error: "",
+          },
+          role: {
+            value: (data?.roles || []).map((role) => ({
+              id: role.ID,
+              name: role.name,
+              code: role.code,
+            })),
+
+            original: (data?.roles || []).map((role) => ({
+              id: role.ID,
+              name: role.name,
+              code: role.code,
+            })),
+
+            error: "",
+          },
+          city: {
+            value: data?.city || "",
+            original: data?.city || "",
+            error: "",
+          },
           status: {
-            value: data?.status || "ACTIVE",
-            original: data?.status || "ACTIVE",
+            value: data?.status || "INACTIVE",
+            original: data?.status || "INACTIVE",
             error: "",
           },
         });
@@ -525,6 +787,61 @@ function UsersListing() {
     });
   };
 
+  const handleSendMail = (row) => {
+    showAlert({
+      title: "Send Login Credentials?",
+      message: `A new temporary password will be generated and sent to "${row.email}". Do you want to continue?`,
+      type: "warning",
+      showCancel: true,
+      confirmText: "Yes, send mail",
+      cancelText: "Cancel",
+
+      onConfirm: async () => {
+        try {
+          setListState((prev) => ({
+            ...prev,
+            showLoaderOnClick: true,
+          }));
+
+          const res = await sendMail(row.id);
+
+          if (res?.code === 200) {
+            notify(
+              res?.message || "Login credentials sent successfully",
+              "success",
+            );
+          } else {
+            const message = Array.isArray(res?.message)
+              ? res.message
+                  .map((err) => (err?.Msg ? err.Msg : JSON.stringify(err)))
+                  .join(", ")
+              : res?.message || "Failed to send login credentials";
+
+            notify(message, "error");
+          }
+        } catch (error) {
+          notify(error?.message || "Failed to send login credentials", "error");
+        } finally {
+          setListState((prev) => ({
+            ...prev,
+            showLoaderOnClick: false,
+          }));
+        }
+      },
+
+      onCancel: () => {},
+    });
+  };
+
+  const roleOptions =
+    roleListData?.code === 200
+      ? (roleListData?.data || []).map((role) => ({
+          id: role.ID,
+          name: role.name,
+          code: role.code,
+        }))
+      : [];
+
   return (
     <>
       <DashboardLayout>
@@ -567,7 +884,7 @@ function UsersListing() {
                     <Grid item xs={12} sm={6} md={4} lg={2}>
                       <TextField
                         fullWidth
-                        placeholder="Search by name "
+                        placeholder="Search by email or name"
                         size="small"
                         value={filterState.searchString}
                         onChange={(e) =>
@@ -577,6 +894,73 @@ function UsersListing() {
                           })
                         }
                       />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6} md={4} lg={2}>
+                      <Autocomplete
+                        options={roleOptions}
+                        value={filterState.role}
+                        getOptionLabel={(option) => option?.name || ""}
+                        isOptionEqualToValue={(option, value) =>
+                          option?.id === value?.id
+                        }
+                        onChange={(event, newValue) => {
+                          setFilterState((prev) => ({
+                            ...prev,
+                            role: newValue,
+                          }));
+                        }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            placeholder="Select Role"
+                            size="small"
+                          />
+                        )}
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6} md={4} lg={2}>
+                      <FormControl fullWidth size="small" sx={selectSx("100%")}>
+                        <Select
+                          value={filterState.city || ""}
+                          displayEmpty
+                          onChange={(e) =>
+                            setFilterState({
+                              ...filterState,
+                              city: e.target.value || null,
+                            })
+                          }
+                          IconComponent={ArrowDropDown}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleSearch();
+                            }
+                          }}
+                          renderValue={(selected) => {
+                            if (!selected) {
+                              return (
+                                <span style={{ color: "rgba(0, 0, 0, 0.38)" }}>
+                                  Select City
+                                </span>
+                              );
+                            }
+
+                            const selectedCity = CITY.find(
+                              (city) => city.value === selected,
+                            );
+
+                            return selectedCity?.label || selected;
+                          }}
+                        >
+                          {CITY.map((city) => (
+                            <MenuItem key={city.value} value={city.value}>
+                              {city.label}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
                     </Grid>
 
                     <Grid item xs={12} sm={6} md={4} lg={2}>
@@ -732,10 +1116,14 @@ function UsersListing() {
             </Grid>
           </Grid>
 
-          <CenterPopup isOpen={panelMode !== null} onClose={closeModal}>
+          <CenterPopup
+            isOpen={panelMode !== null}
+            onClose={closeModal}
+            width={770}
+          >
             <MDBox sx={{ p: 2 }}>
               <MDTypography variant="h6" mb={2}>
-                {panelMode === "edit" ? "Edit Email List" : "Add Email List"}
+                {panelMode === "edit" ? "Edit User" : "Add User"}
               </MDTypography>
 
               {listState.isLoading ? (
@@ -749,8 +1137,8 @@ function UsersListing() {
                 </MDBox>
               ) : (
                 <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                    <RequiredLabel required>Email</RequiredLabel>
+                  <Grid item xs={6}>
+                    <RequiredLabel>Email</RequiredLabel>
                     <MDInput
                       variant="outlined"
                       type="text"
@@ -774,7 +1162,161 @@ function UsersListing() {
                     )}
                   </Grid>
 
-                  <Grid item xs={12}>
+                  <Grid item xs={6}>
+                    <RequiredLabel required>Employee ID</RequiredLabel>
+
+                    <MDInput
+                      variant="outlined"
+                      type="text"
+                      name="empID"
+                      placeholder="Enter employee ID"
+                      value={formData.empID.value}
+                      onChange={(e) =>
+                        handleChange(e.target.name, e.target.value)
+                      }
+                      onBlur={(e) =>
+                        handleOnBlur(e.target.name, e.target.value)
+                      }
+                      error={!!formData.empID.error}
+                      fullWidth
+                      inputProps={{ maxLength: 10 }}
+                    />
+
+                    {formData.empID.error && (
+                      <MDTypography variant="caption" color="error">
+                        {formData.empID.error}
+                      </MDTypography>
+                    )}
+                  </Grid>
+
+                  <Grid item xs={6}>
+                    <RequiredLabel>Privilege</RequiredLabel>
+
+                    <MDInput
+                      variant="outlined"
+                      type="number"
+                      name="privilege"
+                      placeholder="Enter privilege"
+                      value={formData.privilege.value}
+                      onChange={(e) =>
+                        handleChange(e.target.name, e.target.value)
+                      }
+                      onBlur={(e) =>
+                        handleOnBlur(e.target.name, e.target.value)
+                      }
+                      error={!!formData.privilege.error}
+                      fullWidth
+                      inputProps={{ min: 0 }}
+                    />
+
+                    {formData.privilege.error && (
+                      <MDTypography variant="caption" color="error">
+                        {formData.privilege.error}
+                      </MDTypography>
+                    )}
+                  </Grid>
+
+                  <Grid item xs={6}>
+                    <RequiredLabel required>Employee Name</RequiredLabel>
+
+                    <MDInput
+                      variant="outlined"
+                      type="text"
+                      name="empName"
+                      placeholder="Enter employee name"
+                      value={formData.empName.value}
+                      onChange={(e) =>
+                        handleChange(e.target.name, e.target.value)
+                      }
+                      onBlur={(e) =>
+                        handleOnBlur(e.target.name, e.target.value)
+                      }
+                      error={!!formData.empName.error}
+                      fullWidth
+                      inputProps={{ maxLength: 100 }}
+                    />
+
+                    {formData.empName.error && (
+                      <MDTypography variant="caption" color="error">
+                        {formData.empName.error}
+                      </MDTypography>
+                    )}
+                  </Grid>
+                  <Grid item xs={6}>
+                    <RequiredLabel required>Select City</RequiredLabel>
+
+                    <FormControl
+                      fullWidth
+                      size="small"
+                      error={!!formData.city.error}
+                      sx={selectSx("100%")}
+                    >
+                      <Select
+                        name="city"
+                        value={formData.city.value || ""}
+                        displayEmpty
+                        onChange={(e) => handleChange("city", e.target.value)}
+                        onBlur={(e) => handleOnBlur("city", e.target.value)}
+                        IconComponent={ArrowDropDown}
+                        renderValue={(selected) => {
+                          if (!selected) {
+                            return (
+                              <span style={{ color: "rgba(0, 0, 0, 0.38)" }}>
+                                Select City
+                              </span>
+                            );
+                          }
+
+                          const selectedCity = CITY.find(
+                            (city) => city.value === selected,
+                          );
+
+                          return selectedCity?.label || selected;
+                        }}
+                      >
+                        {CITY.map((city) => (
+                          <MenuItem key={city.value} value={city.value}>
+                            {city.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+
+                    {formData.city.error && (
+                      <MDTypography variant="caption" color="error">
+                        {formData.city.error}
+                      </MDTypography>
+                    )}
+                  </Grid>
+
+                  <Grid item xs={6}>
+                    <RequiredLabel required>Select Role</RequiredLabel>
+                    <Autocomplete
+                      {...autoCompleteProps}
+                      multiple
+                      size="small"
+                      disablePortal
+                      options={roleOptions}
+                      getOptionLabel={(option) => option.name || ""}
+                      value={formData.role.value || []}
+                      onChange={(event, newValue) =>
+                        handleChange("role", newValue)
+                      }
+                      isOptionEqualToValue={(option, value) =>
+                        option?.id === value?.id
+                      }
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          placeholder="Select role"
+                          error={!!formData.role.error}
+                          helperText={formData.role.error}
+                        />
+                      )}
+                    />
+                  </Grid>
+
+                  <Grid item xs={6}>
                     <RequiredLabel>Status</RequiredLabel>
                     <RadioGroup
                       row

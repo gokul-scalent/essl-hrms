@@ -29,70 +29,80 @@ const { borderRadius } = borders;
 
 const autocomplete = {
   styleOverrides: {
-    popper: {
-      boxShadow: lg,
-      padding: pxToRem(8),
-      fontSize: size.sm,
-      color: text.main,
-      textAlign: "left",
-      backgroundColor: `${white.main} !important`,
-      borderRadius: borderRadius.md,
+    root: {
+      minHeight: "2.73rem",
+
+      "& .MuiFormControl-root": {
+        height: "auto",
+      },
+    },
+
+    inputRoot: {
+      minHeight: "2.73rem",
+      padding: "0 !important",
+      display: "flex",
+      alignItems: "center",
+      flexWrap: "wrap",
+
+      "& .MuiOutlinedInput-notchedOutline": {
+        borderRadius: "0.4285rem",
+        borderColor: "#D0D7DE",
+      },
+
+      // "&:hover .MuiOutlinedInput-notchedOutline": {
+      //   borderColor: colors.deepBlue.main,
+      // },
+
+      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+        borderColor: colors.deepBlue.main,
+      },
+
+      "&.Mui-error .MuiOutlinedInput-notchedOutline": {
+        borderColor: colors.vividRed.main,
+        borderWidth: 2,
+      },
+
+      "&.Mui-error.Mui-focused .MuiOutlinedInput-notchedOutline": {
+        borderColor: colors.vividRed.main,
+        borderWidth: 2,
+      },
+
+      "& input": {
+        padding: "0 0.75rem !important",
+        height: "auto",
+        boxSizing: "border-box",
+        fontSize: "0.75rem",
+      },
+
+      "& .MuiAutocomplete-tag": {
+        margin: "2px", // better chip spacing
+      },
+    },
+
+    endAdornment: {
+      right: "0.5rem",
+    },
+
+    popupIndicator: {
+      "& svg": {
+        fontSize: "1.5rem", // try 1.5rem or 1.6rem
+      },
+      color: "#6C757D",
+    },
+
+    clearIndicator: {
+      transform: "scale(1.1)",
     },
 
     paper: {
       boxShadow: "none",
-      backgroundColor: transparent.main,
+      margin: 0,
     },
 
     option: {
-      padding: `${pxToRem(4.8)} ${pxToRem(16)}`,
-      borderRadius: borderRadius.md,
-      fontSize: size.sm,
-      color: text.main,
-      transition: "background-color 300ms ease, color 300ms ease",
-
-      "&:hover, &:focus, &.Mui-selected, &.Mui-selected:hover, &.Mui-selected:focus": {
-        backgroundColor: light.main,
-        color: dark.main,
-      },
-
-      '&[aria-selected="true"]': {
-        backgroundColor: `${light.main} !important`,
-        color: `${dark.main} !important`,
-      },
-    },
-
-    noOptions: {
-      fontSize: size.sm,
-      color: text.main,
-    },
-
-    groupLabel: {
-      color: dark.main,
-    },
-
-    loading: {
-      fontSize: size.sm,
-      color: text.main,
-    },
-
-    tag: {
-      display: "flex",
-      alignItems: "center",
-      height: "auto",
-      padding: pxToRem(4),
-      backgroundColor: gradients.dark.state,
-      color: white.main,
-
-      "& .MuiChip-label": {
-        lineHeight: 1.2,
-        padding: `0 ${pxToRem(10)} 0 ${pxToRem(4)}`,
-      },
-
-      "& .MuiSvgIcon-root, & .MuiSvgIcon-root:hover, & .MuiSvgIcon-root:focus": {
-        color: white.main,
-        marginRight: 0,
-      },
+      padding: "6px 16px",
+      fontSize: "0.75rem",
+      colors: colors.text.main,
     },
   },
 };

@@ -33,31 +33,214 @@ func (r *EmployeeRepoImpl) CreateEmployee(ctx context.Context, employee entity.E
 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
 	log.Info("core>repo>employee: CreateEmployee started", reqID)
 
-	query := "INSERT INTO employees (uid, emp_id, emp_name, privilege, password, group_id, card) VALUES(?, ?, ?, ?, ?, ?, ?)"
+	tx, err := r.db.Beginx()
+	if err != nil {
+		log.Error("failed to begin transaction: "+err.Error(), reqID)
 
-	result, err := r.db.Exec(
-		query,
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			if rollbackErr := tx.Rollback(); rollbackErr != nil {
+				log.Error("transaction rollback failed: "+rollbackErr.Error(), reqID)
+			} else {
+				log.Info("CreateEmployee transaction rolled back", reqID)
+			}
+		}
+	}()
+
+	var dbName string
+
+	err = tx.Get(&dbName, "SELECT DATABASE()")
+	if err != nil {
+		log.Error("failed to get database name: "+err.Error(), reqID)
+	} else {
+		log.Info("CreateEmployee DB = "+dbName, reqID)
+	}
+
+	// STEP 2: Create user
+	userQuery := `
+		INSERT INTO users (	email,	password, is_password_set,	status,	empname, biometric_sync	) VALUES (?, ?, ?, ?, ?, ?)
+	`
+	userResult, err := tx.Exec(
+		userQuery,
+		nil,              // email
+		nil,              // password
+		"NO",             // is_password_set
+		"INACTIVE",       // status
+		employee.EmpName, // empname
+		1,                //biometric for user
+	)
+
+	if err != nil {
+		log.Error("failed to create user: "+err.Error(), reqID)
+
+		if mysqlErr, ok := err.(*mysql.MySQLError); ok {
+			if mysqlErr.Number == 1062 {
+				return 0, errors.ResponseBadRequestError("User already exists")
+			}
+		}
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	// STEP 3: Get generated users.id
+	userID, err := userResult.LastInsertId()
+	if err != nil {
+		log.Error("failed to get generated user id: "+err.Error(), reqID)
+
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+	employee.UID = int(userID)
+	log.Info("core>repo>employee: created user with id = "+strconv.Itoa(employee.UID), reqID)
+
+	// STEP 4: Assign EMPLOYEE role
+	const employeeRoleID = 41
+
+	roleResult, err := tx.Exec(
+		`
+	INSERT INTO user_roles (
+		user_id,
+		role_id
+	)
+	VALUES (?, ?)
+	`,
+		employee.UID,
+		employeeRoleID,
+	)
+
+	if err != nil {
+
+		if mysqlErr, ok := err.(*mysql.MySQLError); ok {
+			log.Error("MySQL role error number = "+strconv.Itoa(int(mysqlErr.Number))+", message = "+mysqlErr.Message, reqID)
+		}
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+	rowsAffected, err := roleResult.RowsAffected()
+	if err != nil {
+		log.Error("FAILED TO GET USER ROLE ROW COUNT: "+err.Error(), reqID)
+
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	if rowsAffected != 1 {
+		log.Error("USER ROLE INSERT DID NOT AFFECT ONE ROW: user_id="+strconv.Itoa(employee.UID)+", role_id="+strconv.Itoa(employeeRoleID), reqID)
+
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	// Verify role exists inside the same transaction
+	var roleCount int
+
+	err = tx.Get(
+		&roleCount,
+		`
+	SELECT COUNT(*)
+	FROM user_roles
+	WHERE user_id = ?
+	AND role_id = ?
+	AND deleted_at IS NULL
+	`,
+		employee.UID,
+		employeeRoleID,
+	)
+
+	if err != nil {
+		log.Error("FAILED TO VERIFY EMPLOYEE ROLE: "+err.Error(), reqID)
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	if roleCount != 1 {
+		log.Error("EMPLOYEE ROLE WAS NOT FOUND AFTER INSERT: user_id="+strconv.Itoa(employee.UID)+", role_id="+strconv.Itoa(employeeRoleID), reqID)
+
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	// STEP 5: Create employee-
+
+	employeeQuery := `
+		INSERT INTO employees (
+			uid,
+			emp_id,
+			emp_name,
+			privilege,
+			password,
+			group_id
+		)
+		VALUES (?, ?, ?, ?, ?, ?)
+	`
+	employeeResult, err := tx.Exec(
+		employeeQuery,
 		employee.UID,
 		employee.EmpID,
 		employee.EmpName,
 		employee.Privilege,
 		employee.Password,
 		employee.GroupID,
-		employee.Card,
 	)
 
 	if err != nil {
-		log.Error(err.Error(), reqID)
-		if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
-			return 0, errors.ResponseBadRequestError("Employee ID already exists")
+		log.Error("failed to create employee: "+err.Error(), reqID)
+		if mysqlErr, ok := err.(*mysql.MySQLError); ok {
+			if mysqlErr.Number == 1062 {
+				return 0, errors.ResponseBadRequestError("Employee ID already exists")
+			}
 		}
 
+		return 0, errors.ResponseInternalServerError(
+			errors.INTERNAL_SERVER_ERROR,
+		)
+	}
+
+	// STEP 6: Get generated employees.id
+	employeeID, err := employeeResult.LastInsertId()
+	if err != nil {
+		log.Error("failed to get generated employee id: "+err.Error(), reqID)
 		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
 	}
 
-	employeeID, err := result.LastInsertId()
+	// STEP 7: Verify employee exists inside transaction
+	var employeeCount int
+
+	err = tx.Get(
+		&employeeCount,
+		`
+		SELECT COUNT(*)
+		FROM employees
+		WHERE id = ?
+		`,
+		employeeID,
+	)
+
 	if err != nil {
-		log.Error(err.Error(), reqID)
+		log.Error("failed to verify employee insert: "+err.Error(), reqID)
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	if employeeCount != 1 {
+		log.Error("Employee was not found after INSERT. employeeID="+strconv.Itoa(int(employeeID)), reqID)
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+	// STEP 8: Verify UID relationship
+	var employeeUID int
+
+	err = tx.Get(&employeeUID, `SELECT uid	FROM employees	WHERE id = ?`, employeeID)
+
+	if err != nil {
+		log.Error("failed to verify employee uid: "+err.Error(), reqID)
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	if employeeUID != employee.UID {
+		log.Error("employee UID mismatch: expected="+strconv.Itoa(employee.UID)+", actual="+strconv.Itoa(employeeUID), reqID)
+
+		return 0, errors.ResponseInternalServerError(
+			errors.INTERNAL_SERVER_ERROR,
+		)
+	}
+
+	if err := tx.Commit(); err != nil {
+		log.Error("failed to commit CreateEmployee transaction: "+err.Error(), reqID)
 		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
 	}
 
@@ -284,4 +467,103 @@ func (r *EmployeeRepoImpl) GetEmployeeDetails(ctx context.Context, selectColumns
 
 	log.Info("core>repo>employee: GetEmployeeDetails completed", reqID)
 	return &employeeEntity, nil
+}
+
+func (r *EmployeeRepoImpl) CreateEmployeeForUser(ctx context.Context, employee entity.Employee) (int, errors.Response) {
+	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
+	log.Info("core>repo>employee: CreateEmployeeForUser started", reqID)
+
+	tx, err := r.db.Beginx()
+	if err != nil {
+		log.Error("failed to begin transaction: "+err.Error(), reqID)
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	committed := false
+
+	defer func() {
+		if !committed {
+			if rollbackErr := tx.Rollback(); rollbackErr != nil {
+				log.Error("transaction rollback failed: "+rollbackErr.Error(), reqID)
+			}
+		}
+	}()
+
+	// User must already exist.
+	var userCount int
+	err = tx.Get(
+		&userCount,
+		`
+		SELECT COUNT(*)
+		FROM users
+		WHERE id = ?
+		AND deleted_at IS NULL
+		`,
+		employee.UID,
+	)
+
+	if err != nil {
+		log.Error("failed to verify user: "+err.Error(), reqID)
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	if userCount != 1 {
+		log.Error("user not found for employee UID="+strconv.Itoa(employee.UID), reqID)
+		return 0, errors.ResponseBadRequestError("User not found")
+	}
+
+	// Create employee using existing users.id
+	employeeQuery := `
+		INSERT INTO employees (	uid,emp_id,	emp_name, privilege,	password, group_id) VALUES (?, ?, ?, ?, ?, ?)
+	`
+	employeeResult, err := tx.Exec(employeeQuery, employee.UID, employee.EmpID, employee.EmpName, employee.Privilege, employee.Password, employee.GroupID)
+
+	if err != nil {
+		log.Error("failed to create employee: "+err.Error(), reqID)
+
+		if mysqlErr, ok := err.(*mysql.MySQLError); ok {
+			if mysqlErr.Number == 1062 {
+				return 0, errors.ResponseBadRequestError("Employee ID already exists")
+			}
+		}
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	employeeID, err := employeeResult.LastInsertId()
+	if err != nil {
+		log.Error("failed to get generated employee id: "+err.Error(), reqID)
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	// Verify employee
+	var employeeCount int
+	err = tx.Get(
+		&employeeCount,
+		`
+		SELECT COUNT(*)
+		FROM employees
+		WHERE id = ?
+		AND uid = ?
+		`,
+		employeeID,
+		employee.UID,
+	)
+
+	if err != nil {
+		log.Error("failed to verify employee insert: "+err.Error(), reqID)
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	if employeeCount != 1 {
+		log.Error("employee was not found after INSERT", reqID)
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	if err := tx.Commit(); err != nil {
+		log.Error("failed to commit CreateEmployeeForUser transaction: "+err.Error(), reqID)
+		return 0, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+	committed = true
+	log.Info("CreateEmployeeForUser completed: employeeID="+strconv.Itoa(int(employeeID))+", uid="+strconv.Itoa(employee.UID), reqID)
+	return int(employeeID), nil
 }

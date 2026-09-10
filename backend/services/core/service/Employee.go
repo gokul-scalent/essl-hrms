@@ -2,12 +2,13 @@ package service
 
 import (
 	"context"
+	"strconv"
+
 	"github.com/scalent.io/scalent-hrms/entity"
 	"github.com/scalent.io/scalent-hrms/entity/filters"
 	mailoraContext "github.com/scalent.io/scalent-hrms/pkg/context"
 	"github.com/scalent.io/scalent-hrms/pkg/errors"
 	"github.com/scalent.io/scalent-hrms/pkg/log"
-	"strconv"
 )
 
 type EmployeeServiceImpl struct {
@@ -102,4 +103,17 @@ func (s *EmployeeServiceImpl) ListEmployee(ctx context.Context, filter *filters.
 
 	log.Info("core>service>employee: employee list completed", reqID)
 	return totalRecords, employeesEntity, nil
+}
+
+func (s *EmployeeServiceImpl) CreateEmployeeForUser(ctx context.Context, employee entity.Employee) (int, errors.Response) {
+	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
+	log.Info("core>service>employee: CreateEmployeeForUser started", reqID)
+	employeeID, errResp := s.employeeRepo.CreateEmployeeForUser(ctx, employee)
+
+	if errResp != nil {
+		log.Error(errResp.Error(), reqID)
+		return 0, errResp
+	}
+	log.Info("core>service>employee: CreateEmployeeForUser completed & employee id is "+strconv.Itoa(employeeID), reqID)
+	return employeeID, nil
 }

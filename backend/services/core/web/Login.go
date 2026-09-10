@@ -73,11 +73,13 @@ func (h CoreHandlerRegistry) LoginHandler(c *gin.Context) {
 		return
 	}
 
-	userEntity, token, errResp := h.Options.LoginService.Login(
-		c.Request.Context(),
-		loginRequest.Email,
-		decodedPassword,
-	)
+	// Login
+	userEntity, token, errResp :=
+		h.Options.LoginService.Login(
+			c.Request.Context(),
+			loginRequest.Email,
+			decodedPassword,
+		)
 
 	if errResp != nil {
 		log.Error(errResp.Error(), reqID)
@@ -85,9 +87,26 @@ func (h CoreHandlerRegistry) LoginHandler(c *gin.Context) {
 		return
 	}
 
+	// Convert roles to role codes
+	roleCodes := make([]string, 0, len(userEntity.Roles))
+
+	for _, role := range userEntity.Roles {
+		if role.Code != "" {
+			roleCodes = append(roleCodes, role.Code)
+		}
+	}
+
+	// Make sure the user has at least one role
+	if len(roleCodes) == 0 {
+		log.Error("login successful but user has no active roles", reqID)
+
+		httpUtils.ErrorResponse(c, errors.ResponseUnauthorizedError("User has no active role assigned"), nil)
+		return
+	}
+
 	response := coreAPIModel.LoginResponse{
 		Email:         userEntity.Email,
-		Role:          userEntity.Role.Code,
+		Roles:         roleCodes,
 		Token:         token,
 		IsPasswordSet: userEntity.IsPasswordSet,
 	}

@@ -19,5 +19,5 @@ const (
 
 // login link
 const (
-	LOGIN_LINK = "http://mailora.scalent.io/auth/sign-in" //need to replace with live
+	LOGIN_LINK = "http://mailora.scalent.io/auth/sign-in" //need to replace with live link of scalent hrms
 )

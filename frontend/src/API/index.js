@@ -9,6 +9,7 @@ import {
   EMPLOYEE_LIST,
   ATTENDANCE_LOG_LIST,
   DAILY_ATTENDANCE_LOG_LIST,
+  ROLE,
 } from "./apiConstants";
 
 const API = axios.create({
@@ -82,3 +83,8 @@ export const get_daily_attendance_log_list = (pageNum, filtersJSON, searchString
       ...(searchString ? { searchString } : {}),
     },
   });
+//send mail
+export const send_mail = (id) => API.post(`${USERS}${id}/send-mail`);
+
+//role list
+export const get_role_list = () => API.get(ROLE);

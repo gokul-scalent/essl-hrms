@@ -69,6 +69,11 @@ var CoreModuleSet = wire.NewSet(
 
 	service.NewCronServiceImpl,
 	wire.Bind(new(service.CronService), new(*service.CronServiceImpl)),
+	repo.NewRoleRepoImpl,
+	wire.Bind(new(service.RoleRepo), new(*repo.RoleRepoImpl)),
+
+	service.NewRoleServiceImpl,
+	wire.Bind(new(service.RoleService), new(*service.RoleServiceImpl)),
 
 // -----==-----==DO NOT ADD CODE BELOW THIS LINE------
 )

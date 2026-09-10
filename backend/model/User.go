@@ -10,11 +10,20 @@ type User struct {
 	Password      sql.NullString `db:"password"`
 	IsPasswordSet string         `db:"is_password_set"`
 	Status        sql.NullString `db:"status"`
+	RoleIDs       sql.NullString `db:"role_ids"`
+	RoleCodes     sql.NullString `db:"role_codes"`
+	RoleNames     sql.NullString `db:"role_names"`
+	RoleStatus    sql.NullString `db:"role_status"`
+	EmpID         sql.NullString `db:"emp_id"`
+	EmpName       sql.NullString `db:"emp_name"`
+	City          sql.NullString `db:"city"`
+	Privilege     int            `db:"privilege"`
 	LastLoginAt   sql.NullTime   `db:"last_login_at"`
 	SessionToken  sql.NullString `db:"session_token"`
 	CreatedAt     sql.NullTime   `db:"created_at"`
 	UpdatedAt     sql.NullTime   `db:"updated_at"`
 	DeletedAt     sql.NullTime   `db:"deleted_at"`
+	BiometricSync bool           `db:"biometric_sync"`
 }
 
 var UserModelMap = map[string]FieldStruct{
@@ -28,4 +37,14 @@ var UserModelMap = map[string]FieldStruct{
 	"CreatedAt":     {MySQLDatatype: "datetime", FieldName: "created_at"},
 	"UpdatedAt":     {MySQLDatatype: "datetime", FieldName: "updated_at"},
 	"DeletedAt":     {MySQLDatatype: "datetime", FieldName: "deleted_at"},
+	"RoleID":        {MySQLDatatype: "int", FieldName: "ur.role_id"},
+	"RoleIDs":       {MySQLDatatype: "varchar", FieldName: "ur.role_id"},
+	"RoleCodes":     {MySQLDatatype: "varchar", FieldName: "r.code"},
+	"RoleNames":     {MySQLDatatype: "varchar", FieldName: "r.name"},
+	"RoleStatus":    {MySQLDatatype: "varchar", FieldName: "r.status"},
+	"EmpID":         {MySQLDatatype: "varchar", FieldName: "e.emp_id"},
+	"EmpName":       {MySQLDatatype: "varchar", FieldName: "e.emp_name"},
+	"City":          {MySQLDatatype: "enum", FieldName: "u.city"},
+	"BiometricSync": {MySQLDatatype: "tinyint", FieldName: "u.biometric_sync"},
+	"Privilege":     {MySQLDatatype: "int", FieldName: "e.privilege"},
 }

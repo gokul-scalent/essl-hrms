@@ -22,3 +22,5 @@ export const ATTENDANCE_LOG_LIST = `${BASE_URL}/attendance-log/list`;
 
 //daily attendance log
 export const DAILY_ATTENDANCE_LOG_LIST = `${BASE_URL}/attendance-log/daily`;
+//role
+export const ROLE = `${BASE_URL}/role/list`;
