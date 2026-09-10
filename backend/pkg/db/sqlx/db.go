@@ -21,10 +21,19 @@ type Database struct {
 }
 
 func NewDBConn(dbConf *DbConfig) (*sqlx.DB, error) {
-	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", dbConf.User, dbConf.Pass, dbConf.Host, MYSQLPORT, dbConf.Name)
+	connectionString := fmt.Sprintf(
+		"%s:%s@tcp(%s:%s)/%s?parseTime=true&loc=Asia%%2FKolkata",
+		dbConf.User,
+		dbConf.Pass,
+		dbConf.Host,
+		MYSQLPORT,
+		dbConf.Name,
+	)
+
 	mysqlDbInstance, err := sqlx.Connect(dbConf.Driver, connectionString)
 	if err != nil {
 		return nil, err
 	}
+
 	return mysqlDbInstance, nil
 }

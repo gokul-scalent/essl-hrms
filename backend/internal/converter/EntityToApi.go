@@ -67,6 +67,7 @@ func AttendanceLogEntityToAttendanceLogAPIModelResponse(e entity.AttendanceLog) 
 		ID:              e.ID,
 		UID:             e.UID,
 		EmpID:           e.EmpID,
+		EmpName:         e.EmpName,
 		Timestamp:       e.Timestamp,
 		Status:          e.Status,
 		Punch:           e.Punch,
@@ -76,6 +77,36 @@ func AttendanceLogEntityToAttendanceLogAPIModelResponse(e entity.AttendanceLog) 
 	return list
 }
 
+func DailyAttendanceLogEntityToAttendanceLogAPIModelResponse(e entity.DailyAttendanceLog) coreAPIModel.DailyAttendanceLogResponse {
+
+	punches := []coreAPIModel.AttendancePunchResponse{}
+
+	for _, punch := range e.Punches {
+
+		checkIn := ""
+		if punch.CheckIn != nil {
+			checkIn = punch.CheckIn.Format("15:04")
+		}
+		checkOut := ""
+		if punch.CheckOut != nil {
+			checkOut = punch.CheckOut.Format("15:04")
+		}
+		punches = append(
+			punches,
+			coreAPIModel.AttendancePunchResponse{
+				CheckIn:  checkIn,
+				CheckOut: checkOut,
+			},
+		)
+	}
+
+	return coreAPIModel.DailyAttendanceLogResponse{
+		EmpID:        e.EmpID,
+		EmpName:      e.EmpName,
+		Date:         e.Date.Format("2006-01-02"),
+		Punches:      punches,
+		WorkingHours: e.WorkingHours,
+		Status:       e.Status,
 func RoleEntityToRoleAPIModelResponse(e entity.Role) coreAPIModel.RoleResponse {
 	return coreAPIModel.RoleResponse{
 		ID:     e.ID,

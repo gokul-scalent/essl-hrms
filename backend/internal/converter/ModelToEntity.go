@@ -81,6 +81,7 @@ func AttendanceLogModelToAttendanceLogEntity(m model.AttendanceLog) entity.Atten
 		ID:              m.ID,
 		UID:             m.UID,
 		EmpID:           m.EmpID,
+		EmpName:         m.EmpName,
 		Timestamp:       m.Timestamp,
 		Status:          m.Status,
 		Punch:           m.Punch,
@@ -91,6 +92,50 @@ func AttendanceLogModelToAttendanceLogEntity(m model.AttendanceLog) entity.Atten
 	return e
 }
 
+func AllAttendanceLogModelToAttendanceLogEntity(m []model.AttendanceLog) []entity.AttendanceLog {
+	e := []entity.AttendanceLog{}
+	for _, log := range m {
+		e = append(e, entity.AttendanceLog{
+			ID:              log.ID,
+			UID:             log.UID,
+			EmpID:           log.EmpID,
+			EmpName:         log.EmpName,
+			Timestamp:       log.Timestamp,
+			Status:          log.Status,
+			Punch:           log.Punch,
+			AttendanceState: log.AttendanceState,
+			DeviceName:      log.DeviceName,
+			CreatedAt:       log.CreatedAt.Time,
+		})
+	}
+	return e
+	// return e
+}
+
+func AllAttendanceLogHoursModelToAttendanceLogHoursEntity(m []model.DailyAttendanceLogWorkingHours) []entity.DailyAttendanceLogHours {
+	e := []entity.DailyAttendanceLogHours{}
+	for _, log := range m {
+		e = append(e, entity.DailyAttendanceLogHours{
+
+			EmpID:        log.EmpID,
+			EmpName:      log.EmpName,
+			Date:         log.LogDate,
+			Status:       log.Status,
+			CheckInTime:  log.CheckInTime,
+			CheckOutTime: log.CheckOutTime,
+			WorkingHours: log.WorkingHours,
+		})
+	}
+	return e
+	// return e
+}
+
+func DailyAttendanceLogModelToEntity(m model.DailyAttendanceLog) entity.DailyAttendanceLog {
+	return entity.DailyAttendanceLog{
+		EmpID:   m.EmpID,
+		EmpName: m.EmpName,
+		Date:    m.LogDate,
+		Punches: []entity.AttendancePunch{},
 func RoleModelToRoleEntity(m model.Role) entity.Role {
 	var updatedAt time.Time
 	var deletedAt *time.Time

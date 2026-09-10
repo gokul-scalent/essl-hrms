@@ -2,13 +2,18 @@ package service
 
 import (
 	"context"
+	"sort"
 	"strconv"
+	"time"
 
 	"github.com/scalent.io/scalent-hrms/entity"
 	"github.com/scalent.io/scalent-hrms/entity/filters"
+	"github.com/scalent.io/scalent-hrms/internal/converter"
+	"github.com/scalent.io/scalent-hrms/model"
 	mailoraContext "github.com/scalent.io/scalent-hrms/pkg/context"
 	"github.com/scalent.io/scalent-hrms/pkg/errors"
 	"github.com/scalent.io/scalent-hrms/pkg/log"
+	"github.com/scalent.io/scalent-hrms/pkg/validation"
 )
 
 type AttendanceLogServiceImpl struct {
@@ -89,4 +94,299 @@ func (s *AttendanceLogServiceImpl) ListAttendanceLog(ctx context.Context, filter
 
 	log.Info("core>service>attendanceLog: attendance log list completed", reqID)
 	return totalRecords, attendanceLogsEntity, nil
+}
+
+// func (s *AttendanceLogServiceImpl) ListDailyAttendanceLog(ctx context.Context, filter *filters.ListFilter, empID, fromDate, toDate string) (int, []entity.DailyAttendanceLog, errors.Response) {
+// 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
+
+// 	log.Info("core>service>attendanceLog: ListDailyAttendanceLog started", reqID)
+
+// 	count, attendanceLogs, errResp := s.attendanceLogRepo.ListDailyAttendanceLog(ctx, filter, empID, fromDate, toDate)
+
+// 	if errResp != nil {
+// 		log.Error(errResp.Error(), reqID)
+// 		return 0, nil, errResp
+// 	}
+
+// 	dailyAttendance := s.CalculateDailyAttendance(attendanceLogs)
+
+//		log.Info("core>service>attendanceLog: ListDailyAttendanceLog completed", reqID)
+//		return count, dailyAttendance, nil
+//	}
+func (s *AttendanceLogServiceImpl) ListDailyAttendanceByHoursLog(ctx context.Context, filter *filters.ListFilter, empID, targetDate string) (int, []entity.DailyAttendanceLogHours, errors.Response) {
+	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
+
+	log.Info("core>service>attendanceLog: ListDailyAttendanceByHoursLog started", reqID)
+
+	count, attendanceLogs, errResp := s.attendanceLogRepo.ListDailyAttendanceByHoursLog(ctx, filter, empID, targetDate)
+
+	if errResp != nil {
+		log.Error(errResp.Error(), reqID)
+		return 0, nil, errResp
+	}
+	dailyAttendance := converter.AllAttendanceLogHoursModelToAttendanceLogHoursEntity(attendanceLogs)
+	//dailyAttendance := s.CalculateDailyAttendanceByHours(attendanceLogs)
+
+	log.Info("core>service>attendanceLog: ListDailyAttendanceByHoursLog completed", reqID)
+	return count, dailyAttendance, nil
+}
+func (s *AttendanceLogServiceImpl) CalculateDailyAttendance(logs []model.DailyAttendanceLog) []entity.DailyAttendanceLog {
+
+	// If there are no attendance punches, return an empty result.
+	if len(logs) == 0 {
+		return []entity.DailyAttendanceLog{}
+	}
+
+	// Group attendance punches by employee and date.
+	grouped := make(map[string][]model.DailyAttendanceLog)
+
+	// Loop through all attendance punches received from the repository.
+	for _, log := range logs {
+
+		// Create a unique key using employee ID and attendance date.
+		key := log.EmpID + "_" + log.LogDate.Format("2006-01-02")
+
+		// Add the punch to the employee/date group.
+		grouped[key] = append(grouped[key], log)
+	}
+
+	// This will contain the final daily attendance records.
+	result := []entity.DailyAttendanceLog{}
+
+	// Process each employee/date group.
+	for _, employeeLogs := range grouped {
+
+		// Attendance punches must be processed chronologically.
+		sort.Slice(employeeLogs, func(i, j int) bool {
+			return employeeLogs[i].Timestamp.Time.Before(
+				employeeLogs[j].Timestamp.Time,
+			)
+		})
+
+		dailyLog := entity.DailyAttendanceLog{
+			EmpID:   employeeLogs[0].EmpID,
+			EmpName: employeeLogs[0].EmpName,
+			Date:    employeeLogs[0].LogDate,
+			Punches: []entity.AttendancePunch{},
+		}
+
+		var totalWorkingDuration time.Duration
+		var previousPunch *model.DailyAttendanceLog
+
+		// Tracks whether the current/last check-out was already paired.
+		lastPunchPaired := false
+		// Track whether we've seen the first valid punch for this day/group.
+		firstPunchSeen := false
+		for i := range employeeLogs {
+			current := employeeLogs[i]
+			// Ignore invalid punch.
+			if !current.Punch.Valid {
+				continue
+			}
+			// Ignore invalid timestamp.
+			if !current.Timestamp.Valid {
+				continue
+			}
+			punch := int(current.Punch.Int64)
+			timestamp := current.Timestamp.Time
+
+			if previousPunch == nil {
+
+				// Determine if this is the first valid punch processed for the group.
+				isFirst := false
+				if !firstPunchSeen {
+					isFirst = true
+					firstPunchSeen = true
+				}
+
+				// CASE 1: Employee forgot the very first check-in. Only appl this assumption if this is the first valid punch and it isa CHECK_OUT. Assume CHECK_IN at 10:00 AM.
+				if isFirst && punch == 1 {
+
+					checkIn := time.Date(timestamp.Year(), timestamp.Month(), timestamp.Day(), 10, 0, 0, 0, timestamp.Location())
+					checkOut := timestamp
+
+					if checkOut.After(checkIn) {
+						dailyLog.Punches = append(
+							dailyLog.Punches,
+							entity.AttendancePunch{
+								CheckIn:  &checkIn,
+								CheckOut: &checkOut,
+							},
+						)
+
+						duration := checkOut.Sub(checkIn)
+						if duration > 0 {
+							totalWorkingDuration += duration
+						}
+					}
+
+					previousPunch = nil
+					lastPunchPaired = true
+
+					continue
+				}
+				// First punch is CHECK_IN. Keep it unmatched until a CHECK_OUT is received.
+				if punch == 0 {
+					// First punch is CHECK_IN — keep the actual punch timestamp as the unmatched previous punch so it will be paired with the next CHECK_OUT. Do not override it with 10:00 AM.
+					currentCopy := current
+					previousPunch = &currentCopy
+					lastPunchPaired = false
+				}
+				continue
+			}
+
+			previousPunchType := int(previousPunch.Punch.Int64)
+			previousTime := previousPunch.Timestamp.Time
+
+			// CASE 2:normal check-in and check-out pair
+			if previousPunchType == 0 && punch == 1 {
+
+				checkIn := previousTime
+				checkOut := timestamp
+
+				dailyLog.Punches = append(
+					dailyLog.Punches,
+					entity.AttendancePunch{
+						CheckIn:  &checkIn,
+						CheckOut: &checkOut,
+					},
+				)
+
+				// Calculate working duration.
+				duration := checkOut.Sub(checkIn)
+				if duration > 0 {
+					totalWorkingDuration += duration
+				}
+				// Both punches are paired. Keep the current OUT as the previous
+				// punch so a subsequent OUT (without an intervening IN) can be detected as consecutive check-outs and handled (generate an assumed check-in).
+				currentCopy := current
+				previousPunch = &currentCopy
+				lastPunchPaired = true
+				continue
+			}
+
+			// CASE 3: check-in -> check-in condition ----> First check-in has no check-out. Assume check-out = second check-in - 15 minutes.
+			if previousPunchType == 0 && punch == 0 {
+				checkIn := previousTime
+				checkOut := timestamp.Add(-15 * time.Minute)
+
+				if checkOut.After(checkIn) {
+
+					dailyLog.Punches = append(
+						dailyLog.Punches,
+						entity.AttendancePunch{
+							CheckIn:  &checkIn,
+							CheckOut: &checkOut,
+						},
+					)
+
+					duration := checkOut.Sub(checkIn)
+					if duration > 0 {
+						totalWorkingDuration += duration
+					}
+				}
+				// Current IN becomes the new unmatched punch.
+				currentCopy := current
+				previousPunch = &currentCopy
+				lastPunchPaired = false
+
+				continue
+			}
+
+			// CASE 4: check-out -> check-out Missing check-in before second check-out. Assume check-in = previous check-out + 15 minutes.
+			if previousPunchType == 1 && punch == 1 {
+
+				checkIn := previousTime.Add(15 * time.Minute)
+				checkOut := timestamp
+
+				if checkIn.Before(checkOut) {
+					dailyLog.Punches = append(
+						dailyLog.Punches,
+						entity.AttendancePunch{
+							CheckIn:  &checkIn,
+							CheckOut: &checkOut,
+						},
+					)
+
+					duration := checkOut.Sub(checkIn)
+
+					if duration > 0 {
+						totalWorkingDuration += duration
+					}
+					// Current OUT has been used as checkout.
+					lastPunchPaired = true
+				} else {
+					lastPunchPaired = false
+				}
+
+				// Current OUT becomes previous punch.
+				currentCopy := current
+				previousPunch = &currentCopy
+
+				continue
+			}
+
+			// CASE 5: previous is CHECK_OUT and current is CHECK_IN. This is a normal IN after an OUT — treat the current IN as the
+			// new unmatched previous punch so it can be paired with the next OUT.
+			if previousPunchType == 1 && punch == 0 {
+				currentCopy := current
+				previousPunch = &currentCopy
+				lastPunchPaired = false
+				continue
+			}
+		}
+
+		if previousPunch != nil {
+
+			// Make sure punch and timestamp are valid.
+			if previousPunch.Punch.Valid && previousPunch.Timestamp.Valid {
+
+				punch := int(previousPunch.Punch.Int64)
+				timestamp := previousPunch.Timestamp.Time
+
+				// CASE 5: Last punch is check-in. Employee forgot the final check-out. Assume check-out = 7:00 PM.
+				if punch == 0 {
+
+					checkIn := timestamp
+
+					dailyLog.Punches = append(
+						dailyLog.Punches,
+						entity.AttendancePunch{
+							CheckIn:  &checkIn,
+							CheckOut: nil,
+						},
+					)
+
+					dailyLog.Status = "PRESENT"
+				}
+
+				// Last punch is CHECK_OUT and was not paired. Keep CHECK_IN as NULL.
+				if punch == 1 && !lastPunchPaired {
+
+					checkOut := timestamp
+
+					dailyLog.Punches = append(
+						dailyLog.Punches,
+						entity.AttendancePunch{
+							CheckIn:  nil,
+							CheckOut: &checkOut,
+						},
+					)
+
+					dailyLog.Status = "PRESENT"
+				}
+			}
+		}
+		if dailyLog.Status == "" {
+
+			if len(dailyLog.Punches) > 0 {
+				dailyLog.Status = "PRESENT"
+			} else {
+				dailyLog.Status = "ABSENT"
+			}
+		}
+		dailyLog.WorkingHours = validation.FormatWorkingHours(totalWorkingDuration)
+		result = append(result, dailyLog)
+	}
+	return result
 }

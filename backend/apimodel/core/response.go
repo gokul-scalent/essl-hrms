@@ -1,6 +1,10 @@
 package apimodel
 
-import "time"
+import (
+	"time"
+
+	"github.com/scalent.io/scalent-hrms/entity"
+)
 
 type LoginResponse struct {
 	Email         string   `json:"email,omitempty"`
@@ -56,6 +60,7 @@ type AttendanceLogResponse struct {
 	ID              int       `json:"ID"`
 	UID             int       `json:"uID"`
 	EmpID           string    `json:"empID"`
+	EmpName         string    `json:"empName"`
 	Timestamp       time.Time `json:"timestamp"`
 	Status          int       `json:"status"`
 	Punch           int       `json:"punch"`
@@ -67,6 +72,42 @@ type AttendanceLogListResponse struct {
 	TotalRecords       int `json:"totalRecords"`
 	NoOfRecordsPerPage int `json:"noOfRecordsPerPage"`
 	AttendanceLog      []AttendanceLogResponse
+}
+
+type AttendancePunchResponse struct {
+	CheckIn  string `json:"checkIn"`
+	CheckOut string `json:"checkOut"`
+}
+
+type DailyAttendanceLogResponse struct {
+	EmpID        string                    `json:"empID"`
+	EmpName      string                    `json:"empName"`
+	Date         string                    `json:"date"`
+	Punches      []AttendancePunchResponse `json:"punches"`
+	WorkingHours string                    `json:"workingHours"`
+	Status       string                    `json:"status"`
+}
+
+type DailyAttendanceHoursLogResponse struct {
+	EmpID        string `json:"empID"`
+	EmpName      string `json:"empName"`
+	Date         string `json:"date"`
+	CheckIN      string `json:"checkIn"`
+	CheckOut     string `json:"checkOut"`
+	WorkingHours string `json:"workingHours"`
+	Status       string `json:"status"`
+}
+
+type DailyAttendanceLogListResponse struct {
+	TotalRecords       int                          `json:"totalRecords"`
+	NoOfRecordsPerPage int                          `json:"noOfRecordsPerPage"`
+	DailyAttendanceLog []DailyAttendanceLogResponse `json:"dailyAttendanceLog"`
+}
+
+type DailyAttendanceLogHoursListResponse struct {
+	TotalRecords       int                              `json:"totalRecords"`
+	NoOfRecordsPerPage int                              `json:"noOfRecordsPerPage"`
+	DailyAttendanceLog []entity.DailyAttendanceLogHours `json:"dailyAttendanceLog"`
 }
 
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------

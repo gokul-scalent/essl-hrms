@@ -8,6 +8,7 @@ import {
   CHANGE_PASSWORD,
   EMPLOYEE_LIST,
   ATTENDANCE_LOG_LIST,
+  DAILY_ATTENDANCE_LOG_LIST,
   ROLE,
 } from "./apiConstants";
 
@@ -74,6 +75,14 @@ export const get_attendance_log_list = (pageNum, filtersJSON, searchString) =>
     },
   });
 
+export const get_daily_attendance_log_list = (pageNum, filtersJSON, searchString) =>
+  API.get(DAILY_ATTENDANCE_LOG_LIST, {
+    params: {
+      page: pageNum,
+      ...(filtersJSON ? { filtersJSON } : {}),
+      ...(searchString ? { searchString } : {}),
+    },
+  });
 //send mail
 export const send_mail = (id) => API.post(`${USERS}${id}/send-mail`);
 

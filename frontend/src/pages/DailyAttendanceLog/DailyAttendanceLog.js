@@ -7,28 +7,26 @@ import {
   MenuItem,
   Select,
   TextField,
+  Tooltip,
 } from "@mui/material";
+import { useDispatch, useSelector } from "react-redux";
+import { getDailyAttendanceLogList } from "actions/attendanceLog";
+import { dailyAttendanceLogList } from "constants/attendanceLog";
 import { DEFAULT_RECORDS_PER_PAGE } from "components/common/constant";
 import {
   wrapCell,
-  formatDateTime,
+  formatDate,
 } from "components/CommonComponent/CommonFunction";
-import DataTable from "examples/Tables/DataTable";
-import { useDispatch, useSelector } from "react-redux";
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import MDBox from "components/MDBox";
 import MDButton from "components/MDButton";
 import MDTypography from "components/MDTypography";
-import { getAttendanceLogList } from "actions/attendanceLog";
-import { attendanceLogList } from "constants/attendanceLog";
-import { ATTENDANCE_LOG_STATE } from "components/common/constant";
-import { selectSx } from "components/CommonComponent/CommonFunction";
-import { ArrowDropDown } from "@mui/icons-material";
+import DataTable from "examples/Tables/DataTable";
 
-function AttendanceLogList() {
+function DailyAttendanceLog() {
   const dispatch = useDispatch();
-  const attendanceLogListData = useSelector(
-    (state) => state.attendanceLog.attendanceLogList,
+  const dailyAttendanceLogListData = useSelector(
+    (state) => state.attendanceLog.dailyAttendanceLogList,
   );
   const [listState, setListState] = useState({
     isLoading: true,
@@ -36,27 +34,24 @@ function AttendanceLogList() {
     noRecords: false,
     showLoaderOnClick: false,
   });
+  const [pageNum, setPageNum] = useState(1);
   const [filterState, setFilterState] = useState({
     searchString: "",
-    attendanceState: null,
-    startDate: "",
-    endDate: "",
     filterParams: {
       filters: [],
       searchString: "",
     },
   });
-  const [pageNum, setPageNum] = useState(1);
 
   useEffect(() => {
-    getAttendanceLogList(
+    getDailyAttendanceLogList(
       dispatch,
       pageNum,
       filterState.filterParams.filters,
       filterState.filterParams.searchString,
     );
     return () => {
-      dispatch({ type: attendanceLogList, payload: {} });
+      dispatch({ type: dailyAttendanceLogList, payload: {} });
     };
   }, [
     dispatch,
@@ -66,24 +61,28 @@ function AttendanceLogList() {
   ]);
 
   useEffect(() => {
-    if (attendanceLogListData?.code === 200) {
+    if (dailyAttendanceLogListData?.code === 200) {
       setListState({
         isLoading: false,
         error: "",
-        noRecords: attendanceLogListData?.data?.AttendanceLog?.length === 0,
+        noRecords:
+          dailyAttendanceLogListData?.data?.AttendanceLog?.length === 0,
         showLoaderOnClick: false,
       });
-    } else if (attendanceLogListData?.code || attendanceLogListData?.message) {
+    } else if (
+      dailyAttendanceLogListData?.code ||
+      dailyAttendanceLogListData?.message
+    ) {
       setListState({
         isLoading: false,
         error:
-          attendanceLogListData?.message ||
-          "Failed to load attendance log list! Please try again.",
+          dailyAttendanceLogListData?.message ||
+          "Failed to load daily attendance log list! Please try again.",
         noRecords: false,
         showLoaderOnClick: false,
       });
     }
-  }, [attendanceLogListData]);
+  }, [dailyAttendanceLogListData]);
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
@@ -113,37 +112,9 @@ function AttendanceLogList() {
     }
   };
 
-  //filters functions
   const buildFilterParams = () => {
     const filterParams = [];
 
-    if (filterState.startDate && filterState.endDate) {
-      filterParams.push({
-        field: "Timestamp",
-        condition: "btw",
-        filterValues: [filterState.startDate, filterState.endDate],
-      });
-    } else if (filterState.startDate) {
-      filterParams.push({
-        field: "Timestamp",
-        condition: "gteq",
-        filterValues: [filterState.startDate],
-      });
-    } else if (filterState.endDate) {
-      filterParams.push({
-        field: "Timestamp",
-        condition: "lteq",
-        filterValues: [`${filterState.endDate} 23:59:59`],
-      });
-    }
-
-    if (filterState.attendanceState) {
-      filterParams.push({
-        field: "AttendanceState",
-        condition: "eq",
-        filterValues: [filterState.attendanceState],
-      });
-    }
     return {
       filters: filterParams.length ? JSON.stringify(filterParams) : [],
       searchString: filterState.searchString.trim(),
@@ -153,9 +124,6 @@ function AttendanceLogList() {
   const handleClear = () => {
     setFilterState({
       searchString: "",
-      attendanceState: null,
-      startDate: "",
-      endDate: "",
       filterParams: {
         filters: [],
         searchString: "",
@@ -172,24 +140,29 @@ function AttendanceLogList() {
 
   // Table data columns
   const formattedTableData =
-    attendanceLogListData?.data?.AttendanceLog?.map((item, index) => ({
-      ...item,
-      id: item?.ID,
-      srNo:
-        (pageNum - 1) *
-          (attendanceLogListData?.data?.noOfRecordsPerPage ||
-            DEFAULT_RECORDS_PER_PAGE) +
-        index +
-        1,
-      uID: item?.uID ?? "-",
-      empID: item?.empID || "-",
-      empName: item?.empName || "-",
-      timestamp: item?.timestamp || null,
-      status: item?.status ?? "-",
-      punch: item?.punch ?? "-",
-      attendanceState: item?.attendanceState || "-",
-      deviceName: item?.deviceName || "-",
-    })) || [];
+    dailyAttendanceLogListData?.data?.dailyAttendanceLog?.map(
+      (item, index) => ({
+        ...item,
+        id: item?.ID,
+        srNo:
+          (pageNum - 1) *
+            (dailyAttendanceLogListData?.data?.noOfRecordsPerPage ||
+              DEFAULT_RECORDS_PER_PAGE) +
+          index +
+          1,
+        empID: item?.empID || "-",
+        empName: item?.empName || "-",
+        date: item?.date || null,
+        checkIn:
+          item?.punches?.map((punch) => punch?.checkIn || "-").join(", ") ||
+          "-",
+        checkOut:
+          item?.punches?.map((punch) => punch?.checkOut || "-").join(", ") ||
+          "-",
+        workingHours: item?.workingHours || "-",
+        status: item?.status || "-",
+      }),
+    ) || [];
 
   const columns = [
     {
@@ -200,49 +173,81 @@ function AttendanceLogList() {
     },
     {
       Header: "Employee ID",
-      accessor: "empID",
+      accessor: "EmpID",
       align: "left",
       width: "200px",
     },
     {
       Header: "Employee Name",
-      accessor: "empName",
+      accessor: "EmpName",
       align: "left",
       width: "200px",
       Cell: (cell) => wrapCell(cell.value || "-", "200px"),
     },
     {
-      Header: "Device Name",
-      accessor: "deviceName",
+      Header: "Date",
+      accessor: "Date",
       align: "left",
-      width: "200px",
-      Cell: (cell) => wrapCell(cell.value || "-", "200px"),
+      width: "120px",
+      Cell: (cell) => (cell.value ? formatDate(cell.value) : "-"),
     },
+    // {
+    //   Header: "Check In",
+    //   accessor: "CheckInTime",
+    //   align: "left",
+    //   width: "130px",
+    // },
+    // {
+    //   Header: "Check Out",
+    //   accessor: "CheckOutTime",
+    //   align: "left",
+    //   width: "130px",
+    // },
     {
-      Header: "Status",
-      accessor: "status",
-      align: "left",
-      width: "100px",
-    },
-    {
-      Header: "Punch",
-      accessor: "punch",
-      align: "left",
-      width: "100px",
-    },
-    {
-      Header: "Attendance State",
-      accessor: "attendanceState",
+      Header: "Working Hours",
+      accessor: "WorkingHours",
       align: "left",
       width: "150px",
     },
     {
-      Header: "Punch Time",
-      accessor: "timestamp",
+      Header: "Status",
+      accessor: "Status",
       align: "left",
-      width: "160px",
-      Cell: (cell) => (cell.value ? formatDateTime(cell.value) : "-"),
+      width: "120px",
     },
+      {
+          Header: "Action",
+          accessor: "actions",
+          align: "center",
+          width: "120px",
+          disableSortBy: true,
+          Cell: (cell) => {
+            const rowData = cell.row.original;
+    
+            return (
+              <MDBox
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                gap={1}
+              >
+                <Tooltip title="View" arrow>
+                  <Icon
+                    sx={({ palette }) => ({
+                      cursor: "pointer",
+                      color: palette.secondary.main,
+                    })}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                  >
+                    <i className="fas fa-eye fa-sm" />
+                  </Icon>
+                </Tooltip>
+              </MDBox>
+            );
+          },
+        },
   ];
 
   return (
@@ -261,7 +266,7 @@ function AttendanceLogList() {
                   alignItems="center"
                 >
                   <MDTypography variant="h5" fontWeight="bold">
-                    Attendance Log Lists
+                    Daily Attendance Log Lists
                   </MDTypography>
                 </MDBox>
 
@@ -271,84 +276,13 @@ function AttendanceLogList() {
                     <Grid item xs={12} sm={6} md={4} lg={2}>
                       <TextField
                         fullWidth
-                        placeholder="Search by emp ID or device name "
+                        placeholder="Search by emp ID or name "
                         size="small"
                         value={filterState.searchString}
                         onChange={(e) =>
                           setFilterState({
                             ...filterState,
                             searchString: e.target.value,
-                          })
-                        }
-                      />
-                    </Grid>
-
-                    <Grid item xs={12} sm={6} md={4} lg={2}>
-                      <FormControl fullWidth size="small" sx={selectSx("100%")}>
-                        <Select
-                          value={filterState.attendanceState || ""}
-                          displayEmpty
-                          onChange={(e) =>
-                            setFilterState({
-                              ...filterState,
-                              attendanceState: e.target.value,
-                            })
-                          }
-                          IconComponent={ArrowDropDown}
-                          renderValue={(selected) => {
-                            if (!selected) {
-                              return (
-                                <span style={{ color: "rgba(0, 0, 0, 0.38)" }}>
-                                  Select Attendance Log state
-                                </span>
-                              );
-                            }
-
-                            const selectedState = ATTENDANCE_LOG_STATE.find(
-                              (p) => p.label === selected,
-                            );
-                            return selectedState?.value || selected;
-                          }}
-                        >
-                          {ATTENDANCE_LOG_STATE.map((p) => (
-                            <MenuItem key={p.label} value={p.label}>
-                              {p.value}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Grid>
-
-                    <Grid item xs={12} sm={6} md={4} lg={2}>
-                      <TextField
-                        fullWidth
-                        type="date"
-                        label="Start Date"
-                        size="small"
-                        InputLabelProps={{ shrink: true }}
-                        value={filterState.startDate}
-                        onChange={(e) =>
-                          setFilterState({
-                            ...filterState,
-                            startDate: e.target.value,
-                          })
-                        }
-                      />
-                    </Grid>
-
-                    <Grid item xs={12} sm={6} md={4} lg={2}>
-                      <TextField
-                        fullWidth
-                        type="date"
-                        label="End Date"
-                        size="small"
-                        InputLabelProps={{ shrink: true }}
-                        inputProps={{ min: filterState.startDate || undefined }}
-                        value={filterState.endDate}
-                        onChange={(e) =>
-                          setFilterState({
-                            ...filterState,
-                            endDate: e.target.value,
                           })
                         }
                       />
@@ -414,7 +348,7 @@ function AttendanceLogList() {
                 >
                   <MDTypography variant="body2" color="deepBlue" mb={1}>
                     Total Records:{" "}
-                    {attendanceLogListData?.data?.totalRecords || 0}
+                    {dailyAttendanceLogListData?.data?.totalRecords || 0}
                   </MDTypography>
                 </MDBox>
 
@@ -458,9 +392,9 @@ function AttendanceLogList() {
                       pageNum={pageNum}
                       setPageNum={setPageNum}
                       totalPages={Math.ceil(
-                        (attendanceLogListData?.data?.totalRecords || 0) /
-                          (attendanceLogListData?.data?.noOfRecordsPerPage ||
-                            DEFAULT_RECORDS_PER_PAGE),
+                        (dailyAttendanceLogListData?.data?.totalRecords || 0) /
+                          (dailyAttendanceLogListData?.data
+                            ?.noOfRecordsPerPage || DEFAULT_RECORDS_PER_PAGE),
                       )}
                       //   onRowClick={handleRowClick}
                     />
@@ -475,4 +409,4 @@ function AttendanceLogList() {
   );
 }
 
-export default AttendanceLogList;
+export default DailyAttendanceLog;

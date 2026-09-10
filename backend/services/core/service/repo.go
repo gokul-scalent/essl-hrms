@@ -2,9 +2,11 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/scalent.io/scalent-hrms/entity"
 	"github.com/scalent.io/scalent-hrms/entity/filters"
+	"github.com/scalent.io/scalent-hrms/model"
 	"github.com/scalent.io/scalent-hrms/pkg/errors"
 )
 
@@ -53,6 +55,26 @@ type AttendanceLogRepo interface {
 	GetAttendanceLogbyID(ctx context.Context, attendanceLogID int) (entity.AttendanceLog, errors.Response)
 	ListAttendanceLog(ctx context.Context, filter *filters.ListFilter) (int, []entity.AttendanceLog, errors.Response)
 	GetAttendanceLogDetails(ctx context.Context, selectColumns []string, table string, whereColumn []string, args []interface{}) (*entity.AttendanceLog, errors.Response)
+	//ListDailyAttendanceLog(ctx context.Context, filter *filters.ListFilter, empID, fromDate, toDate string) (int, []model.DailyAttendanceLog, errors.Response)
+	ListDailyAttendanceByHoursLog(ctx context.Context, filter *filters.ListFilter, empID, targetDate string) (int, []model.DailyAttendanceLogWorkingHours, errors.Response)
+}
+
+// type CronRepo interface {
+// 	ListActiveEmployees(ctx context.Context) ([]entity.Employee, errors.Response)
+// 	GetAttendanceLogsByDateRange(ctx context.Context, fromDate time.Time, toDate time.Time) ([]entity.AttendanceLog, errors.Response)
+// 	UpsertWorkingHoursSummaries(ctx context.Context, summaries []entity.WorkingHoursSummary) errors.Response
+// 	InsertSynthesizedAttendanceLog(
+// 		ctx context.Context,
+// 		attendanceLog []entity.AttendanceLog,
+// 	) errors.Response
+// }
+
+type CronRepo interface {
+	ListActiveEmployees(ctx context.Context) ([]entity.Employee, errors.Response)
+	GetAttendanceLogsByDateRange(ctx context.Context, from time.Time, to time.Time) ([]entity.AttendanceLog, errors.Response)
+	InsertSynthesizedAttendanceLogs(ctx context.Context, logs []entity.AttendanceLog) errors.Response
+
+	UpsertWorkingHoursSummaries(ctx context.Context, summaries []entity.WorkingHoursSummary) errors.Response
 }
 
 type RoleRepo interface {

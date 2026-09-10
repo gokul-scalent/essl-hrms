@@ -150,36 +150,47 @@ func (r *AttendanceLogRepoImpl) ListAttendanceLog(ctx context.Context, filter *f
 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
 	log.Info("core>repo>attendanceLog: ListAttendanceLog started", reqID)
 
-	queryStatement := "SELECT * FROM attendance_logs "
+	queryStatement := `
+		SELECT
+			attendance_logs.*,
+			e.emp_name
+		FROM attendance_logs
+		LEFT JOIN employees e
+			ON e.emp_id = attendance_logs.emp_id
+	`
 
 	modelmap := model.AttendanceLogModelMap
 
 	whereStr, args := filterPkg.CreateFilterStr(filter.Filters, modelmap)
 
-	// Search attendance logs by employee ID, device name
+	// Search attendance logs by employee ID, employee name, device name
 	if filter.SearchString != "" {
 		search := "%" + strings.TrimSpace(filter.SearchString) + "%"
 
 		whereStr = append(
 			whereStr,
-			"(attendance_logs.emp_id LIKE ? OR attendance_logs.device_name LIKE ?)",
+			`(
+				attendance_logs.emp_id LIKE ?
+				OR e.emp_name LIKE ?
+				OR attendance_logs.device_name LIKE ?
+			)`,
 		)
-		args = append(args, search, search)
+
+		args = append(args, search, search, search)
 	}
 
 	if len(whereStr) > 0 {
-		whereString := strings.Join(whereStr, " AND ")
-		queryStatement += " WHERE " + whereString
+		queryStatement += " WHERE " + strings.Join(whereStr, " AND ")
 	}
 
-	sortStr := filterPkg.CreateSortStr(filter.SortOption, modelmap)
-	queryStatement += sortStr
+	// Latest attendance record first
+	queryStatement += " ORDER BY attendance_logs.timestamp DESC"
 
 	var limitQueryStmt string
 
 	emptySortOption := filters.SortOption{}
 
-	totalRecordQueryStatement := "SELECT COUNT(id) as totalRecords FROM (" + queryStatement + ") as result"
+	totalRecordQueryStatement := "SELECT COUNT(id) FROM (" + queryStatement + ") AS result"
 
 	var count int
 	err := r.db.Get(&count, totalRecordQueryStatement, args...)
@@ -240,4 +251,130 @@ func (r *AttendanceLogRepoImpl) GetAttendanceLogDetails(ctx context.Context, sel
 
 	log.Info("core>repo>attendanceLog: GetAttendanceLogDetails completed", reqID)
 	return &attendanceLogEntity, nil
+}
+
+// func (r *AttendanceLogRepoImpl) ListDailyAttendanceByHoursLog(ctx context.Context, filter *filters.ListFilter, empID, targetDate string) (int, []model.DailyAttendanceLog, errors.Response) {
+
+// 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
+// 	log.Info("core>repo>attendanceLog: ListDailyAttendanceLog started", reqID)
+
+// }
+
+func (r *AttendanceLogRepoImpl) ListDailyAttendanceByHoursLog(ctx context.Context, filter *filters.ListFilter, empID, targetDate string) (int, []model.DailyAttendanceLogWorkingHours, errors.Response) {
+
+	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
+	log.Info("core>repo>attendanceLog: ListDailyAttendanceLog started", reqID)
+
+	// if fromDate == "" {
+	// 	fromDate = time.Now().Format("2006-01-02")
+	// }
+
+	countQuery := `
+		SELECT COUNT(*)
+		FROM employees e
+	`
+
+	countWhere := []string{}
+	countArgs := []interface{}{}
+
+	if empID != "" {
+		countWhere = append(countWhere, "e.emp_id = ?")
+		countArgs = append(countArgs, empID)
+	}
+
+	if filter.SearchString != "" {
+		search := "%" + strings.TrimSpace(filter.SearchString) + "%"
+		countWhere = append(
+			countWhere,
+			"(e.emp_id LIKE ? OR e.emp_name LIKE ?)",
+		)
+
+		countArgs = append(countArgs, search, search)
+	}
+
+	if len(countWhere) > 0 {
+		countQuery += " WHERE " + strings.Join(countWhere, " AND ")
+	}
+
+	var count int
+
+	err := r.db.Get(&count, countQuery, countArgs...)
+	if err != nil {
+		log.Error(err.Error(), reqID)
+		return 0, nil, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	if filter.Page == 0 {
+		filter.Page = 1
+	}
+	offset := commonConstants.NO_OF_RECORDS_PER_PAGE * (filter.Page - 1)
+	query := `
+		SELECT
+			e.emp_id,
+			e.emp_name,
+			CAST(? AS DATE) AS log_date,
+			al.log_date AS log_date,
+			al.check_in_time,
+			al.check_out_time,
+			al.working_hours,
+			al.status
+		FROM (
+			SELECT
+				emp_id,
+				emp_name
+			FROM employees
+	`
+
+	args := []interface{}{
+		targetDate,
+	}
+
+	employeeWhere := []string{}
+
+	if empID != "" {
+		employeeWhere = append(employeeWhere, "emp_id = ?")
+		args = append(args, empID)
+	}
+
+	if filter.SearchString != "" {
+		search := "%" + strings.TrimSpace(filter.SearchString) + "%"
+
+		employeeWhere = append(
+			employeeWhere,
+			"(emp_id LIKE ? OR emp_name LIKE ?)",
+		)
+
+		args = append(args, search, search)
+	}
+
+	if len(employeeWhere) > 0 {
+		query += " WHERE " + strings.Join(employeeWhere, " AND ")
+	}
+
+	query += `
+			ORDER BY emp_id ASC
+			LIMIT ?, ?
+		) e
+
+		LEFT JOIN attendance_working_hours al
+			ON al.emp_id = e.emp_id
+			AND DATE(al.log_date) =?
+
+		ORDER BY
+			e.emp_id ASC,
+			al.log_date ASC
+	`
+
+	args = append(args, offset, commonConstants.NO_OF_RECORDS_PER_PAGE, targetDate)
+
+	var attendanceLogs []model.DailyAttendanceLogWorkingHours
+
+	err = r.db.Select(&attendanceLogs, query, args...)
+	if err != nil {
+		log.Error(err.Error(), reqID)
+		return 0, nil, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	log.Info("core>repo>attendanceLog: ListDailyAttendanceLog completed", reqID)
+	return count, attendanceLogs, nil
 }
