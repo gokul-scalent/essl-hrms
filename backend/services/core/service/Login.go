@@ -48,7 +48,7 @@ func (s *LoginServiceImpl) Login(ctx context.Context, identifier, password strin
 
 	// 2. Status check
 	if userEntity.Status != commonConstants.STATUS_ACTIVE {
-		return nil, "", errors.ResponseBadRequestError("Account is deactivated")
+		return nil, "", errors.ResponseUnauthorizedError("Account is inactive. Please contact the administrator.")
 	}
 	// 4. Password check
 	if userEntity.Password == "" {
@@ -83,22 +83,44 @@ func (s *LoginServiceImpl) Login(ctx context.Context, identifier, password strin
 	if errResp != nil {
 		return nil, "", errResp
 	}
-	userEntity.Role = roleEntity.Role
 
-	// 5. Remove old session (safe)
-	if sessionToken != nil {
+	if roleEntity == nil || len(roleEntity.RoleIDs) == 0 || len(roleEntity.Roles) == 0 {
+		return nil, "", errors.ResponseUnauthorizedError(
+			"User has no active role assigned",
+		)
+	}
+	userEntity.RoleIDs = roleEntity.RoleIDs
+	userEntity.Roles = roleEntity.Roles
+	roleCode := userEntity.Roles[0].Code
+
+	if roleCode == "" {
+		return nil, "", errors.ResponseUnauthorizedError("User has no valid active role assigned")
+	}
+
+	log.Info("core>service>login: Session role:"+roleCode, reqID)
+
+	if roleCode == "" {
+		return nil, "", errors.ResponseUnauthorizedError("User has no valid active role assigned")
+	}
+
+	log.Info("core>service>login: Session role:"+roleCode, reqID)
+
+	// 7. Remove previous session safely
+	if sessionToken != nil && *sessionToken != "" {
 		if err := s.Auth.RemovePreviousSessionToken(ctx, *sessionToken); err != nil {
 			log.Error(err.Error(), reqID)
 		}
 	}
 
-	log.Info("core>service?login: Session role:"+userEntity.Role.Code, reqID)
-	// 6. Create session
-	sessionResp, errResp := s.Auth.CreateSession(ctx, auth.CreateSessionRequest{
-		UserID: userEntity.ID,
-		Role:   userEntity.Role.Code,
-		TTL:    commonConstants.SESSION_TTL,
-	})
+	// 8. Create new session
+	sessionResp, errResp := s.Auth.CreateSession(
+		ctx,
+		auth.CreateSessionRequest{
+			UserID: userEntity.ID,
+			Role:   roleCode,
+			TTL:    commonConstants.SESSION_TTL,
+		},
+	)
 
 	if errResp != nil {
 		return nil, "", errResp
@@ -110,7 +132,6 @@ func (s *LoginServiceImpl) Login(ctx context.Context, identifier, password strin
 	}
 
 	log.Info("core>service>login: Login completed", reqID)
-
 	return userEntity, sessionResp.Token, nil
 }
 

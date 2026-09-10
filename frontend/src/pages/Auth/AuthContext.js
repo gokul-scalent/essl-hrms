@@ -8,8 +8,9 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [auth, setAuth] = useState({
     email: null,
-    role: null,
+    role: [],
     token: null,
+    isPasswordSet: null,
   });
 
   const [loading, setLoading] = useState(true);
@@ -18,7 +19,18 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const stored = localStorage.getItem("p");
     if (stored) {
-      setAuth(JSON.parse(stored));
+      try {
+        const parsedAuth = JSON.parse(stored);
+
+        setAuth({
+          email: parsedAuth?.email || null,
+          role: Array.isArray(parsedAuth?.role) ? parsedAuth.role : [],
+          token: parsedAuth?.token || null,
+          isPasswordSet: parsedAuth?.isPasswordSet || null,
+        });
+      } catch (error) {
+        localStorage.removeItem("p");
+      }
     }
     setLoading(false);
   }, []);
@@ -27,17 +39,28 @@ export const AuthProvider = ({ children }) => {
     const res = await login(loginData);
 
     if (res.code === 200) {
-      if (!Object.values(ROLES).includes(res.data?.role)) {
+      const roles = Array.isArray(res.data?.role) ? res.data.role : [];
+
+      const hasValidRole = roles.some((role) =>
+        Object.values(ROLES).includes(role),
+      );
+
+      if (!hasValidRole) {
         return { success: false, message: "Access denied" };
       }
 
-      setAuth(res.data);
-      localStorage.setItem("p", JSON.stringify(res.data));
+      const authData = {
+        ...res.data,
+        role: roles,
+      };
 
-      return { success: true, data: res.data };
+      setAuth(authData);
+      localStorage.setItem("p", JSON.stringify(authData));
+
+      return { success: true, data: authData };
     }
 
-    return { success: false, message: res?.message };
+    return { success: false, message: res?.message || "Login failed" };
   };
 
   const logoutUser = async () => {
@@ -45,13 +68,24 @@ export const AuthProvider = ({ children }) => {
       await logout();
     } finally {
       localStorage.removeItem("p");
-      setAuth({ email: null, token: null, role: null });
+
+      setAuth({
+        email: null,
+        role: [],
+        token: null,
+        isPasswordSet: null,
+      });
     }
   };
 
   const updateAuth = (data) => {
-    setAuth(data);
-    localStorage.setItem("p", JSON.stringify(data));
+    const updatedAuth = {
+      ...data,
+      role: Array.isArray(data?.role) ? data.role : [],
+    };
+
+    setAuth(updatedAuth);
+    localStorage.setItem("p", JSON.stringify(updatedAuth));
   };
 
   return (

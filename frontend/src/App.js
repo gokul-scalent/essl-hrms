@@ -52,11 +52,12 @@ export default function App() {
 
   const authData = JSON.parse(localStorage.getItem("p")) || {};
   const token = authData?.token;
-  const role = authData?.role;
+  const roles = Array.isArray(authData?.role) ? authData.role : [];
 
   const isAuthenticated = () => !!token;
 
   const getDefaultRoute = () => {
+    const role = roles[0];
     return DEFAULT_ROUTES[role] || "/admin/dashboard";
   };
 
@@ -91,7 +92,7 @@ export default function App() {
       if (route.route && route.layout) {
         const isPublic = !route.roles || route.roles.length === 0;
         const hasAccess = Array.isArray(route.roles)
-          ? route.roles.includes(role)
+          ? route.roles.some((routeRole) => roles.includes(routeRole))
           : true;
 
         return (

@@ -71,6 +71,13 @@ func (h CoreHandlerRegistry) PartialUpdateUserHandler(c *gin.Context) {
 	userEntity := converter.UpdateUserAPIRequestToUserEntity(userRequest)
 	userEntity.ID = userID
 
+	// allow only admin to update users
+	sessionEntity, errSess := context.GetSessionFromContext(c.Request.Context())
+	if errSess != nil || sessionEntity.Role != "ADMIN" {
+		httpUtils.ErrorResponse(c, errors.ResponseUnauthorizedError("access denied"), nil)
+		return
+	}
+
 	errResp := h.Options.UserService.PartialUpdateUser(c.Request.Context(), userEntity)
 	if errResp != nil {
 		log.Error(errResp.Error(), reqID)
@@ -108,6 +115,13 @@ func (h CoreHandlerRegistry) UpdateUserHandler(c *gin.Context) {
 
 	userEntity := converter.UserAPIToUserEntity(userRequest)
 	userEntity.ID = userID
+
+	// allow only admin to update users
+	sessionEntity, errSess := context.GetSessionFromContext(c.Request.Context())
+	if errSess != nil || sessionEntity.Role != "ADMIN" {
+		httpUtils.ErrorResponse(c, errors.ResponseUnauthorizedError("access denied"), nil)
+		return
+	}
 
 	errResp := h.Options.UserService.UpdateUser(c.Request.Context(), userEntity)
 	if errResp != nil {
@@ -315,4 +329,31 @@ func (h CoreHandlerRegistry) ChangePasswordHandler(c *gin.Context) {
 
 	log.Info("core>web>user: ChangePasswordHandler completed successfully ", reqID)
 	httpUtils.DataResponse(c, http.StatusOK, "Password changed successfully.", nil)
+}
+
+func (h CoreHandlerRegistry) SendUserMailHandler(c *gin.Context) {
+	reqID, _ := context.GetRequestIDFromContext(c.Request.Context())
+	log.Info("core>web>user: send user mail started", reqID)
+
+	userIDStr := strings.TrimSpace(c.Param("id"))
+
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		log.Error("invalid user id: "+err.Error(), reqID)
+
+		httpUtils.ErrorResponse(c, errors.ResponseBadRequestError("invalid user id"), nil)
+		return
+	}
+
+	log.Info("core>web>user: send user mail started for user id "+userIDStr, reqID)
+
+	errResp := h.Options.UserService.SendUserMail(c.Request.Context(), userID)
+	if errResp != nil {
+		log.Error("failed to send user mail: "+errResp.Error(), reqID)
+		httpUtils.ErrorResponse(c, errResp, nil)
+		return
+	}
+
+	log.Info("core>web>user: send user mail completed successfully for user id "+userIDStr, reqID)
+	httpUtils.DataResponse(c, http.StatusOK, "Mail sent successfully", nil)
 }

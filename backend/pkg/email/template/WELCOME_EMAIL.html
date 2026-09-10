@@ -19,11 +19,11 @@
         .email-container {
             width: 100%;
             padding: 20px;
+            box-sizing: border-box;
         }
-
         .wrapper {
             max-width: 600px;
-            margin: auto;
+            margin: 0 auto;
             background-color: #ffffff;
             border-radius: 12px;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
@@ -88,6 +88,15 @@
             margin: 10px 0;
         }
 
+        .security-note {
+            background-color: #f8f9fa;
+            border-left: 4px solid #1a4f8b;
+            padding: 12px 15px;
+            margin: 20px 0;
+            font-size: 14px;
+            color: #555555;
+        }
+
         .footer {
             background-color: #f8f9fa;
             text-align: center;
@@ -108,47 +117,63 @@
         <div class="wrapper">
 
             <div class="header">
-                <h2>Welcome to Mailora</h2>
+                <h2>Welcome to Scalent HRMS</h2>
             </div>
-
             <div class="content">
 
                 <p>Dear {{.UserName}},</p>
 
-                <p>Welcome to <strong>Mailora</strong>, your email verification platform.</p>
+                <p>
+                    Welcome to <strong>Scalent HRMS</strong>, your human resources management platform.
+                </p>
 
                 <p>
-                    Your account has been successfully created by an administrator.
-                    You can now log in and start using Mailora to verify email addresses
-                    and manage your email lists.
+                    Your account is ready to use. Please use the credentials provided below
+                    to access Scalent HRMS.
                 </p>
 
                 <p style="text-align: center; margin: 30px 0;">
                     <a href="{{.LoginLink}}" class="login-button">
-                        Login to Mailora
+                        Login to Scalent HRMS
                     </a>
                 </p>
 
-                <p>Please find your login details below:</p>
-
+                <p>
+                    Please find your login credentials below:
+                </p>
                 <div class="credentials-box">
-                    <p><span class="credentials-label">Login Email:</span>
+
+                    <p>
+                        <span class="credentials-label">Login Email:</span>
                         {{.LoginEmail}}
                     </p>
 
-                    <p><span class="credentials-label">Temporary Password:</span>
+                    <p>
+                        <span class="credentials-label">Temporary Password:</span>
                         <strong>{{.LoginPassword}}</strong>
                     </p>
+
+                </div>
+                <div class="security-note">
+                    <strong>Security Notice:</strong>
+                    This is a temporary password. For your security, please log in
+                    and change your password immediately after signing in.
                 </div>
 
-                <p>For security reasons, please log in and change your password immediately.</p>
+                <p>
+                    If you have any questions or need assistance accessing your account,
+                    please contact the <strong>Scalent HRMS Support Team</strong>.
+                </p>
 
-                <p>If you need any assistance, please contact the<strong>Mailora Support Team</strong>.</p>
-                <p><strong>— Mailora Team</strong></p>
+                <p>
+                    Best regards,<br>
+                    <strong>Scalent HRMS Team</strong>
+                </p>
+
             </div>
 
             <div class="footer">
-                <p>© 2026 Mailora. All rights reserved.</p>
+                <p>© 2026 Scalent HRMS. All rights reserved.</p>
             </div>
 
         </div>

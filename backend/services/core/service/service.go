@@ -25,10 +25,12 @@ type UserService interface {
 	GetUserbyID(ctx context.Context, userID int) (entity.User, errors.Response)
 	ListUser(ctx context.Context, filter *filters.ListFilter) (int, []entity.User, errors.Response)
 	ChangePassword(ctx context.Context, oldPassword string, newPassword string) errors.Response
+	SendUserMail(ctx context.Context, userID int) errors.Response
 }
 
 type EmployeeService interface {
 	CreateEmployee(ctx context.Context, employee entity.Employee) (int, errors.Response)
+	CreateEmployeeForUser(ctx context.Context, employee entity.Employee) (int, errors.Response)
 	PartialUpdateEmployee(ctx context.Context, employee entity.Employee) errors.Response
 	UpdateEmployee(ctx context.Context, employee entity.Employee) errors.Response
 	DeleteEmployee(ctx context.Context, employeeID int) errors.Response
@@ -42,6 +44,11 @@ type AttendanceLogService interface {
 	UpdateAttendanceLog(ctx context.Context, attendanceLog entity.AttendanceLog) errors.Response
 	GetAttendanceLogbyID(ctx context.Context, attendanceLogID int) (entity.AttendanceLog, errors.Response)
 	ListAttendanceLog(ctx context.Context, filter *filters.ListFilter) (int, []entity.AttendanceLog, errors.Response)
+}
+
+type RepoService interface {
+	GetRoles(ctx context.Context) ([]entity.Role, errors.Response)
+	GetRoleByID(ctx context.Context, id int) (*entity.Role, errors.Response)
 }
 
 //-----==-----==DO NOT ADD CODE BELOW THIS LINE------

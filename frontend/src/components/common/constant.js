@@ -3,11 +3,17 @@ import colors from "assets/theme/base/colors";
 // constants.js
 export const ROLES = {
   ADMIN: "ADMIN",
+  HR: "HR",
+  EXTERNAL: "EXTERNAL",
+  EMPLOYEE: "EMPLOYEE",
 };
 
 // Role-based default route for now
 export const DEFAULT_ROUTES = {
   [ROLES.ADMIN]: "/admin/dashboard",
+  [ROLES.HR]: "/admin/dashboard",
+  [ROLES.EXTERNAL]: "/admin/dashboard",
+  [ROLES.EMPLOYEE]: "/admin/dashboard",
 };
 
 export const LEADS_STATUS = [
@@ -37,11 +43,11 @@ export const PRIORITY = [
 //color to badge of lead status
 export const STATUS_BADGE_COLORS = {
   SAFE: colors.badgeColors.success,
-  RISKY: colors.badgeColors.warning, 
-  INVALID: colors.badgeColors.error, 
-  UNKNOWN: colors.badgeColors.secondary, 
-  PENDING: colors.badgeColors.info, 
-  TIMEOUT: colors.badgeColors.dark, 
+  RISKY: colors.badgeColors.warning,
+  INVALID: colors.badgeColors.error,
+  UNKNOWN: colors.badgeColors.secondary,
+  PENDING: colors.badgeColors.info,
+  TIMEOUT: colors.badgeColors.dark,
 };
 
 //verification status for lead
@@ -51,7 +57,6 @@ export const VERIFICATION_STATUS = [
   { label: "FAILED", value: "Failed" },
   { label: "NOT_VERIFIED", value: "Not-Verified" },
 ];
-
 
 export const DOWNLOAD_OPTIONS = [
   { label: "All", value: "" },
@@ -70,4 +75,9 @@ export const STATUS = [
 export const ATTENDANCE_LOG_STATE = [
   { label: "CHECK_OUT", value: "Check Out" },
   { label: "CHECK_IN", value: "Check In" },
+];
+
+export const CITY = [
+  { label: "Nashik", value: "NASHIK" },
+  { label: "Pune", value: "PUNE" },
 ];

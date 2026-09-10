@@ -19,3 +19,6 @@ export const EMPLOYEE_LIST = `${BASE_URL}/employee/list`;
 
 //attendance_log
 export const ATTENDANCE_LOG_LIST = `${BASE_URL}/attendance-log/list`;
+
+//role
+export const ROLE = `${BASE_URL}/role/list`;

@@ -8,6 +8,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/scalent.io/scalent-hrms/entity"
+	"github.com/scalent.io/scalent-hrms/internal/converter"
 	"github.com/scalent.io/scalent-hrms/model"
 	mailoraContext "github.com/scalent.io/scalent-hrms/pkg/context"
 	"github.com/scalent.io/scalent-hrms/pkg/errors"
@@ -104,55 +105,38 @@ func (r *LoginRepoImpl) UpdateUserSessionToken(ctx context.Context, userID int, 
 
 // Get User Role
 func (r *LoginRepoImpl) GetUserRoleForLogin(ctx context.Context, userID int) (*entity.User, errors.Response) {
+
 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
-	log.Info("core>repo>login: GetUserRoleForLogin started", reqID)
-	log.Info(
-		"core>repo>login: GetUserRoleForLogin started for userID "+
-			strconv.Itoa(userID),
-		reqID,
-	)
+	log.Info("core>repo>login: GetUserRoleForLogin started for userID "+strconv.Itoa(userID), reqID)
 
-	type tempUserRoleModel struct {
-		UserID   int    `db:"user_id"`
-		RoleID   int    `db:"role_id"`
-		RoleCode string `db:"role_code"`
-		RoleName string `db:"role_name"`
-	}
-
-	tempUserRole := tempUserRoleModel{}
+	var roleModels []model.UserRoleModel
 
 	query := `
-		SELECT 
+		SELECT
 			ur.user_id,
 			ur.role_id,
 			r.code AS role_code,
-			r.name AS role_name
+			r.name AS role_name,
+			r.status AS role_status
 		FROM user_roles ur
-		INNER JOIN roles r ON r.id = ur.role_id
+		INNER JOIN roles r
+			ON r.id = ur.role_id
 		WHERE ur.user_id = ?
-		AND ur.deleted_at IS NULL
-		AND r.deleted_at IS NULL
-		LIMIT 1
+			AND ur.deleted_at IS NULL
+			AND r.deleted_at IS NULL
+			AND r.status = 'ACTIVE'
+		ORDER BY ur.role_id
 	`
 
-	err := r.db.Get(&tempUserRole, query, userID)
+	err := r.db.SelectContext(ctx, &roleModels, query, userID)
 	if err != nil {
-		log.Error(err.Error(), reqID)
-		if err == sql.ErrNoRows {
-			return nil, errors.ResponseNotFoundError("Role not found.")
-		}
+		log.Error("core>repo>login: failed to get user roles: "+err.Error(), reqID)
+
 		return nil, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
 	}
 
-	userEntity := entity.User{
-		ID: tempUserRole.UserID,
-		Role: entity.Role{
-			ID:   tempUserRole.RoleID,
-			Code: tempUserRole.RoleCode,
-			Name: tempUserRole.RoleName,
-		},
+	if len(roleModels) == 0 {
+		return nil, errors.ResponseUnauthorizedError("User has no active role assigned")
 	}
-
-	log.Info("core>repo>login: GetUserRoleForLogin completed", reqID)
-	return &userEntity, nil
+	return converter.UserRoleModelsToUserEntity(userID, roleModels), nil
 }

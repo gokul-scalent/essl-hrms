@@ -35,9 +35,9 @@ func (r *UserRepoImpl) CreateUser(ctx context.Context, user entity.User) (int, e
 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
 	log.Info("core>repo>user: CreateUser started", reqID)
 
-	query := "INSERT INTO users (email, password, is_password_set, status, session_token) VALUES(?, ?, ?, ?, ? )"
+	query := "INSERT INTO users (email, empname, city, password, is_password_set, status, session_token) VALUES(?, ?, ?, ?, ? , ? ,? )"
 
-	result, err := r.db.Exec(query, user.Email, user.Password, user.IsPasswordSet, user.Status, user.SessionToken)
+	result, err := r.db.Exec(query, user.Email, user.EmpName, user.City, user.Password, user.IsPasswordSet, user.Status, user.SessionToken)
 	if err != nil {
 		log.Error(err.Error(), reqID)
 		// Active user with same email.then show email already exits
@@ -61,14 +61,27 @@ func (r *UserRepoImpl) PartialUpdateUser(ctx context.Context, user entity.User) 
 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
 	log.Info("core>repo>user:  PartialUpdateUser started for user id "+strconv.Itoa(user.ID), reqID)
 
-	columns := []string{}
-	args := []interface{}{}
+	var columns []string
+	var args []interface{}
 
 	if user.Email != "" {
 		columns = append(columns, "email=?")
 		args = append(args, user.Email)
 	}
 
+	// Update employee/user name
+	if user.EmpName != "" {
+		columns = append(columns, "empname=?")
+		args = append(args, user.EmpName)
+	}
+
+	// Update city
+	if user.City != "" {
+		columns = append(columns, "city=?")
+		args = append(args, user.City)
+	}
+
+	// Update last login
 	if !user.LastLoginAt.IsZero() {
 		columns = append(columns, "last_login_at=?")
 		args = append(args, user.LastLoginAt)
@@ -89,18 +102,29 @@ func (r *UserRepoImpl) PartialUpdateUser(ctx context.Context, user entity.User) 
 		args = append(args, user.Status)
 	}
 
+	// Nothing to update
+	if len(columns) == 0 {
+		log.Info("core>repo>user: No fields to update for user id "+strconv.Itoa(user.ID), reqID)
+		return nil
+	}
+
+	query := `
+		UPDATE users
+		SET ` + strings.Join(columns, ", ") + `
+		WHERE id = ?
+		AND deleted_at IS NULL
+	`
+
 	args = append(args, user.ID)
 
-	columnStr := strings.Join(columns, ", ")
+	_, err := r.db.Exec(query, args...)
+	if err != nil {
+		log.Error(err.Error(), reqID) // Duplicate email
+		if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
 
-	if columnStr != "" {
-		query := "UPDATE users SET " + columnStr + " WHERE  id=?  AND users.deleted_at IS NULL"
-
-		_, err := r.db.Exec(query, args...)
-		if err != nil {
-			log.Error(err.Error(), reqID)
-			return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+			return errors.ResponseBadRequestError("Email already exists")
 		}
+		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
 	}
 
 	log.Info("core>repo>user: PartialUpdateUser completed for user id "+strconv.Itoa(user.ID), reqID)
@@ -111,9 +135,9 @@ func (r *UserRepoImpl) UpdateUser(ctx context.Context, user entity.User) errors.
 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
 	log.Info("core>repo>user: UpdateUser started for user id "+strconv.Itoa(user.ID), reqID)
 
-	query := "UPDATE users SET email=?, password=?, status=?, last_login_at=?, session_token=? WHERE id=?  	AND deleted_at IS NULL"
+	query := "UPDATE users SET email=?,empname =?,  city =? ,password=?, status=?, last_login_at=?, session_token=? WHERE id=?  	AND deleted_at IS NULL"
 
-	_, err := r.db.Exec(query, user.Email, user.Password, user.Status, user.LastLoginAt, user.SessionToken, user.ID)
+	_, err := r.db.Exec(query, user.Email, user.EmpName, user.City, user.Password, user.Status, user.LastLoginAt, user.SessionToken, user.ID)
 	if err != nil {
 		log.Error(err.Error(), reqID)
 		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
@@ -141,15 +165,82 @@ func (r *UserRepoImpl) DeleteUser(ctx context.Context, userID int) errors.Respon
 
 func (r *UserRepoImpl) GetUserbyID(ctx context.Context, userID int) (entity.User, errors.Response) {
 	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
+
 	log.Info("core>repo>user: GetUserbyID started for user id "+strconv.Itoa(userID), reqID)
 
 	query := `
 		SELECT
-			id, email, password, is_password_set, status,
-			last_login_at, session_token, created_at, updated_at, deleted_at
-		FROM users
-		WHERE id = ?
-		AND deleted_at IS NULL
+			u.id,
+			u.email,
+			u.password,
+			u.is_password_set,
+			u.status,
+
+			GROUP_CONCAT(
+				DISTINCT ur.role_id
+				ORDER BY ur.role_id
+			) AS role_ids,
+
+			GROUP_CONCAT(
+				DISTINCT r.code
+				ORDER BY ur.role_id
+			) AS role_codes,
+
+			GROUP_CONCAT(
+				DISTINCT r.name
+				ORDER BY ur.role_id
+			) AS role_names,
+
+			GROUP_CONCAT(
+				DISTINCT r.status
+				ORDER BY ur.role_id
+			) AS role_status,
+
+			e.emp_id AS emp_id,
+			COALESCE(e.emp_name, u.empname) AS emp_name,
+			COALESCE(e.privilege, 0) AS privilege,
+			u.city AS city,
+			u.biometric_sync,
+			u.last_login_at,
+			u.session_token,
+			u.created_at,
+			u.updated_at,
+			u.deleted_at
+
+		FROM users u
+
+		LEFT JOIN user_roles ur
+			ON ur.user_id = u.id
+			AND ur.deleted_at IS NULL
+
+		LEFT JOIN roles r
+			ON r.id = ur.role_id
+			AND r.deleted_at IS NULL
+			AND r.status = 'ACTIVE'
+
+		LEFT JOIN employees e
+			ON e.uid = u.id
+			AND e.deleted_at IS NULL
+
+		WHERE u.id = ?
+		AND u.deleted_at IS NULL
+
+		GROUP BY
+			u.id,
+			u.email,
+			u.password,
+			u.is_password_set,
+			u.status,
+			e.emp_id,
+			e.emp_name,
+			e.privilege,
+			u.city,
+			u.biometric_sync,
+			u.last_login_at,
+			u.session_token,
+			u.created_at,
+			u.updated_at,
+			u.deleted_at
 	`
 
 	userModel := model.User{}
@@ -158,7 +249,9 @@ func (r *UserRepoImpl) GetUserbyID(ctx context.Context, userID int) (entity.User
 	err := r.db.Get(&userModel, query, userID)
 	if err != nil {
 		log.Error(err.Error(), reqID)
-		return userEntity, errors.ResponseNotFoundError(errors.NOT_FOUND_ERROR)
+
+		return userEntity,
+			errors.ResponseNotFoundError(errors.NOT_FOUND_ERROR)
 	}
 
 	userEntity = converter.UserModelToUserEntity(userModel)
@@ -173,72 +266,199 @@ func (r *UserRepoImpl) ListUser(ctx context.Context, filter *filters.ListFilter)
 
 	queryStatement := `
 		SELECT
-			id, email, password, is_password_set, status,
-			last_login_at, session_token, created_at, updated_at, deleted_at
-		FROM users
+			u.id,
+			u.email,
+			u.password,
+			u.is_password_set,
+			u.status,
+
+			GROUP_CONCAT(
+				DISTINCT ur.role_id
+				ORDER BY ur.role_id
+			) AS role_ids,
+
+			GROUP_CONCAT(
+				DISTINCT r.code
+				ORDER BY ur.role_id
+			) AS role_codes,
+
+			GROUP_CONCAT(
+				DISTINCT r.name
+				ORDER BY ur.role_id
+			) AS role_names,
+
+			GROUP_CONCAT(
+				DISTINCT r.status
+				ORDER BY ur.role_id
+			) AS role_status,
+
+			e.emp_id AS emp_id,
+			COALESCE(e.emp_name, u.empname) AS emp_name,
+			COALESCE(e.privilege, 0) AS privilege,
+			u.city AS city,
+			u.biometric_sync,
+			u.last_login_at,
+			u.session_token,
+			u.created_at,
+			u.updated_at,
+			u.deleted_at
+
+		FROM users u
+
+		LEFT JOIN user_roles ur
+			ON ur.user_id = u.id
+			AND ur.deleted_at IS NULL
+
+		LEFT JOIN roles r
+			ON r.id = ur.role_id
+			AND r.deleted_at IS NULL
+			AND r.status = 'ACTIVE'
+
+		LEFT JOIN employees e
+			ON e.uid = u.id
+			AND e.deleted_at IS NULL
 	`
 
 	modelmap := model.UserModelMap
 
-	whereStr, args := filterPkg.CreateFilterStr(filter.Filters, modelmap)
+	var whereStr []string
+	var args []interface{}
+	var genericFilters []filters.Filter
+	for _, f := range filter.Filters {
+		switch f.Field {
+		case "Status":
+			if len(f.FilterValues) == 0 {
+				continue
+			}
+			switch f.Condition {
+			case "eq":
+				whereStr = append(
+					whereStr,
+					"u.status = ?",
+				)
+				args = append(args, f.FilterValues[0])
+			case "in":
+				placeholders := make([]string, 0, len(f.FilterValues))
+				for _, value := range f.FilterValues {
+					placeholders = append(placeholders, "?")
+					args = append(args, value)
+				}
+				whereStr = append(whereStr, "u.status IN ("+strings.Join(placeholders, ",")+")")
 
-	// Search string
+			case "notin":
+				placeholders := make([]string, 0, len(f.FilterValues))
+				for _, value := range f.FilterValues {
+					placeholders = append(placeholders, "?")
+					args = append(args, value)
+				}
+
+				whereStr = append(whereStr, "u.status NOT IN ("+strings.Join(placeholders, ",")+")")
+			}
+
+		default:
+			genericFilters = append(genericFilters, f)
+		}
+	}
+	if len(genericFilters) > 0 {
+		genericWhereStr, genericArgs :=
+			filterPkg.CreateFilterStr(genericFilters, modelmap)
+		whereStr = append(whereStr, genericWhereStr...)
+		args = append(args, genericArgs...)
+	}
 	if filter.SearchString != "" {
 		search := "%" + strings.TrimSpace(filter.SearchString) + "%"
-		whereStr = append(whereStr, "users.email LIKE ?")
-		args = append(args, search)
+
+		whereStr = append(whereStr, "(u.email LIKE ? OR e.emp_name LIKE ? OR u.empname LIKE ? OR e.emp_id LIKE ? OR u.city LIKE ?)")
+
+		args = append(args, search, search, search, search, search)
 	}
 
 	// Soft delete
-	whereStr = append(whereStr, "users.deleted_at IS NULL")
-
+	whereStr = append(whereStr, "u.deleted_at IS NULL")
 	whereString := strings.Join(whereStr, " AND ")
-	whereString = "WHERE " + whereString
 
-	queryStatement = queryStatement + whereString
+	if whereString != "" {
+		queryStatement += " WHERE " + whereString
+	}
 
+	queryStatement += `
+		GROUP BY
+			u.id,
+			u.email,
+			u.password,
+			u.is_password_set,
+			u.status,
+			e.emp_id,
+			e.emp_name,
+			e.privilege ,
+			u.city,
+			u.last_login_at,
+			u.session_token,
+			u.created_at,
+			u.updated_at,
+			u.deleted_at
+	`
+
+	// Sort
 	sortStr := filterPkg.CreateSortStr(filter.SortOption, modelmap)
-	queryStatement = queryStatement + sortStr
+	queryStatement += sortStr
 
-	var limitQueryStmt string
-
-	emptySortOption := filters.SortOption{}
-
-	totalRecordQueryStatement := "SELECT COUNT(id) as totalRecords FROM (" + queryStatement + ") as result"
+	// Count users
+	countQuery := `
+		SELECT COUNT(*)
+		FROM (
+			` + queryStatement + `
+		) AS result
+	`
 
 	var count int
-	err := r.db.Get(&count, totalRecordQueryStatement, args...)
+
+	err := r.db.Get(&count, countQuery, args...)
+
 	if err != nil {
 		log.Error(err.Error(), reqID)
-		return 0, nil, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+		return 0, nil,
+			errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
 	}
 
-	if filter.Page == 0 && len(filter.Filters) == 0 && filter.SortOption == emptySortOption && filter.SearchString == "" {
-		limitQueryStmt = queryStatement
-
-	} else {
-		if filter.Page == 0 {
-			filter.Page = 1
-		}
-
-		offset := commonConstants.NO_OF_RECORDS_PER_PAGE * (filter.Page - 1)
-		limitQueryStmt = queryStatement + " LIMIT ?,?"
-		args = append(args, offset, commonConstants.NO_OF_RECORDS_PER_PAGE)
+	// Pagination
+	if filter.Page == 0 {
+		filter.Page = 1
 	}
 
+	offset := commonConstants.NO_OF_RECORDS_PER_PAGE *
+		(filter.Page - 1)
+
+	limitQuery := queryStatement +
+		" LIMIT ?,?"
+
+	argsWithPagination := append(
+		append([]interface{}{}, args...),
+		offset,
+		commonConstants.NO_OF_RECORDS_PER_PAGE,
+	)
+
+	// Fetch users
 	usersModel := []model.User{}
 
-	err = r.db.Select(&usersModel, limitQueryStmt, args...)
+	err = r.db.Select(&usersModel, limitQuery, argsWithPagination...)
+
 	if err != nil {
 		log.Error(err.Error(), reqID)
-		return 0, nil, errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+		return 0, nil,
+			errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
 	}
 
+	// Convert to entity
 	userEntities := []entity.User{}
-
 	for _, userModel := range usersModel {
-		userEntity := converter.UserModelToUserEntity(userModel)
-		userEntities = append(userEntities, userEntity)
+		userEntity := converter.UserModelToUserEntity(
+			userModel,
+		)
+		userEntities = append(
+			userEntities,
+			userEntity,
+		)
 	}
 
 	log.Info("core>repo>user: ListUser completed", reqID)
@@ -267,16 +487,29 @@ func (r *UserRepoImpl) GetUserDetails(ctx context.Context, selectColumns []strin
 }
 
 func (r *UserRepoImpl) AssignUserRole(ctx context.Context, userID int, roleID int) errors.Response {
+	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
+	log.Info("core>repo>user: AssignUserRole started for user id "+strconv.Itoa(userID)+" role id "+strconv.Itoa(roleID), reqID)
 	query := `
-        INSERT INTO user_roles (user_id, role_id)
-        VALUES (?, ?)
-    `
+		INSERT INTO user_roles (
+			user_id,
+			role_id
+		)
+		VALUES (?, ?)
+	`
+
 	_, err := r.db.ExecContext(ctx, query, userID, roleID)
 	if err != nil {
-		return errors.ResponseInternalServerError(
-			errors.INTERNAL_SERVER_ERROR,
-		)
+		// Same user + same role already exists
+		if mysqlErr, ok := err.(*mysql.MySQLError); ok &&
+			mysqlErr.Number == 1062 {
+			log.Error("user already has this role", reqID)
+			return errors.ResponseBadRequestError("User already has this role")
+		}
+
+		log.Error("failed to assign user role: "+err.Error(), reqID)
+		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
 	}
+	log.Info("core>repo>user: AssignUserRole completed for user id "+strconv.Itoa(userID), reqID)
 	return nil
 }
 
@@ -293,5 +526,211 @@ func (r *UserRepoImpl) ChangePassword(ctx context.Context, password string, user
 	}
 
 	log.Info("core>repo>user: ChangePassword completed for user id "+strconv.Itoa(userID), reqID)
+	return nil
+}
+
+func (r *UserRepoImpl) UpdateEmployeeName(ctx context.Context, userID int, empName string) errors.Response {
+	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
+
+	query := `
+		UPDATE employees
+		SET emp_name = ?
+		WHERE uid = ?
+		AND deleted_at IS NULL
+	`
+
+	_, err := r.db.Exec(query, empName, userID)
+
+	if err != nil {
+		log.Error("failed to update employee name: "+err.Error(), reqID)
+		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+	return nil
+}
+
+func (r *UserRepoImpl) UpdateUserPassword(ctx context.Context, userID int, hashedPassword string) errors.Response {
+	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
+
+	query := `
+		UPDATE users
+		SET
+			password = ?,
+			is_password_set = 'NO',
+			updated_at = NOW()
+		WHERE id = ?
+		AND deleted_at IS NULL
+	`
+
+	result, err := r.db.Exec(query, hashedPassword, userID)
+	if err != nil {
+		log.Error("failed to update user password: "+err.Error(), reqID)
+
+		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Error("failed to get affected rows: "+err.Error(), reqID)
+
+		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	if rowsAffected == 0 {
+		return errors.ResponseNotFoundError(errors.NOT_FOUND_ERROR)
+	}
+	return nil
+}
+
+func (r *UserRepoImpl) UpdateUserRoles(ctx context.Context, userID int, roleIDs []int) errors.Response {
+	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
+	log.Info("core>repo>user: UpdateUserRoles started for user id "+strconv.Itoa(userID), reqID)
+
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		log.Error("failed to begin transaction: "+err.Error(), reqID)
+		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	// Rollback automatically if any error occurs.
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	// 1. Soft delete all currently active roles
+	_, err = tx.ExecContext(
+		ctx,
+		`
+		UPDATE user_roles
+		SET deleted_at = NOW()
+		WHERE user_id = ?
+		AND deleted_at IS NULL
+		`,
+		userID,
+	)
+
+	if err != nil {
+		log.Error("failed to remove existing user roles: "+err.Error(), reqID)
+		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	// 2. Add/restore selected roles
+	for _, roleID := range roleIDs {
+		if roleID <= 0 {
+			continue
+		}
+
+		// First try to restore an existing soft-deleted role.
+		result, err := tx.ExecContext(
+			ctx,
+			`
+			UPDATE user_roles
+			SET deleted_at = NULL
+			WHERE user_id = ?
+			AND role_id = ?
+			AND deleted_at IS NOT NULL
+			`,
+			userID,
+			roleID,
+		)
+
+		if err != nil {
+			log.Error("failed to restore user role: "+err.Error(), reqID)
+			return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+		}
+
+		rowsAffected, err := result.RowsAffected()
+		if err != nil {
+			log.Error("failed to get affected rows: "+err.Error(), reqID)
+			return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+		}
+
+		// If role did not previously exist, insert it.
+		if rowsAffected == 0 {
+
+			_, err = tx.ExecContext(
+				ctx,
+				`
+				INSERT INTO user_roles (
+					user_id,
+					role_id
+				)
+				VALUES (?, ?)
+				`,
+				userID,
+				roleID,
+			)
+
+			if err != nil {
+				log.Error("failed to insert user role: "+err.Error(), reqID)
+				return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+			}
+		}
+	}
+
+	// 3. Commit transaction
+	if err = tx.Commit(); err != nil {
+		log.Error("failed to commit user roles: "+err.Error(), reqID)
+		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	log.Info("core>repo>user: UpdateUserRoles completed for user id "+strconv.Itoa(userID), reqID)
+	return nil
+}
+
+func (r *UserRepoImpl) UpdateEmployeeDetails(ctx context.Context, userID int, empID string, empName string, privilege int) errors.Response {
+	reqID, _ := mailoraContext.GetRequestIDFromContext(ctx)
+	log.Info("core>repo>user: UpdateEmployeeDetails started for user id "+strconv.Itoa(userID), reqID)
+
+	log.Info("core>repo>user: Employee update data - "+"empID="+empID+", empName="+empName+", privilege="+strconv.Itoa(privilege), reqID)
+	var columns []string
+	var args []interface{}
+
+	// Update employee ID only when provided
+	if empID != "" {
+		columns = append(columns, "emp_id = ?")
+		args = append(args, empID)
+	}
+
+	// Update employee name only when provided
+	if empName != "" {
+		columns = append(columns, "emp_name = ?")
+		args = append(args, empName)
+	}
+
+	// Update privilege only when non-zero
+	if privilege != 0 {
+		columns = append(columns, "privilege = ?")
+		args = append(args, privilege)
+	}
+
+	// Nothing to update
+	if len(columns) == 0 {
+		log.Info("core>repo>user: No employee fields to update for user id "+strconv.Itoa(userID), reqID)
+		return nil
+	}
+
+	query := `
+		UPDATE employees
+		SET ` + strings.Join(columns, ", ") + `
+		WHERE uid = ?
+		AND deleted_at IS NULL
+	`
+
+	args = append(args, userID)
+
+	_, err := r.db.Exec(query, args...)
+	if err != nil {
+		log.Error("failed to update employee details: "+err.Error(), reqID)
+
+		if mysqlErr, ok := err.(*mysql.MySQLError); ok &&
+			mysqlErr.Number == 1062 {
+			return errors.ResponseBadRequestError("Employee ID already exists")
+		}
+		return errors.ResponseInternalServerError(errors.INTERNAL_SERVER_ERROR)
+	}
+
+	log.Info("core>repo>user: UpdateEmployeeDetails completed for user id "+strconv.Itoa(userID), reqID)
 	return nil
 }
